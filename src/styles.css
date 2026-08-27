@@ -1,7 +1,8 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&display=swap");
 
 :root {
-  font-family: "DM Sans", system-ui, sans-serif;
+  --font-app: "Lexend", system-ui, sans-serif;
+  font-family: var(--font-app);
   color: #26352d;
   background: #f7f3ea;
   font-synthesis: none;
@@ -18,7 +19,10 @@
   --success: #276749;
 }
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+  font-family: inherit;
+}
 
 html,
 body {
@@ -126,7 +130,7 @@ button:disabled { cursor: wait; }
 .welcome-panel h1,
 .setup-card h1 {
   margin: 0;
-  font-family: "Newsreader", Georgia, serif;
+  font-family: var(--font-app);
   font-weight: 600;
   letter-spacing: -0.035em;
 }
@@ -151,7 +155,7 @@ blockquote {
   max-width: 420px;
   margin: 0;
   color: rgb(249 245 235 / 72%);
-  font-family: "Newsreader", Georgia, serif;
+  font-family: var(--font-app);
   font-size: 17px;
   line-height: 1.5;
 }
@@ -159,7 +163,7 @@ blockquote {
 blockquote cite {
   display: block;
   margin-top: 5px;
-  font-family: "DM Sans", system-ui, sans-serif;
+  font-family: var(--font-app);
   font-size: 11px;
   font-style: normal;
   letter-spacing: 0.08em;
@@ -440,7 +444,7 @@ blockquote cite {
   border-radius: 50%;
   color: #fffdf8;
   background: var(--terracotta);
-  font-family: "Newsreader", Georgia, serif;
+  font-family: var(--font-app);
   font-size: 26px;
   place-items: center;
 }
