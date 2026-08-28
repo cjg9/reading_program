@@ -338,19 +338,6 @@ export function TeacherDashboard({ client, user }: TeacherDashboardProps) {
                 </p>
               )}
               <ul className="class-grid" aria-label="Teacher classes">
-                <li>
-                  <button
-                    ref={createTile}
-                    className="class-tile create-class-tile"
-                    type="button"
-                    onClick={openCreateDialog}
-                    disabled={openingClassId !== null}
-                  >
-                    <span className="create-icon" aria-hidden="true">+</span>
-                    <span className="class-tile-name">Create a class</span>
-                    <span className="class-tile-detail">Start a new reading space</span>
-                  </button>
-                </li>
                 {classes.map((teacherClass) => (
                   <li key={teacherClass.id}>
                     <button
@@ -376,6 +363,19 @@ export function TeacherDashboard({ client, user }: TeacherDashboardProps) {
                     </button>
                   </li>
                 ))}
+                <li>
+                  <button
+                    ref={createTile}
+                    className="class-tile create-class-tile"
+                    type="button"
+                    onClick={openCreateDialog}
+                    disabled={openingClassId !== null}
+                  >
+                    <span className="create-icon" aria-hidden="true">+</span>
+                    <span className="class-tile-name">Create a class</span>
+                    <span className="class-tile-detail">Start a new reading space</span>
+                  </button>
+                </li>
               </ul>
             </>
           )}
