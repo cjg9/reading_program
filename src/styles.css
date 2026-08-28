@@ -314,6 +314,9 @@ blockquote cite {
 .primary-button:active:not(:disabled) { transform: translateY(1px); }
 
 .primary-button:focus-visible,
+.primary-link:focus-visible,
+.secondary-link:focus-visible,
+.portal-switch a:focus-visible,
 .mode-switch button:focus-visible,
 .show-password:focus-visible,
 .text-button:focus-visible,
@@ -332,6 +335,20 @@ blockquote cite {
   font-size: 10px;
   line-height: 1.5;
   text-align: center;
+}
+
+.portal-switch {
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.portal-switch a {
+  color: var(--forest-light);
+  font-weight: 700;
+  text-underline-offset: 3px;
 }
 
 .centered-screen {
@@ -406,6 +423,51 @@ blockquote cite {
   width: auto;
   margin-top: 12px;
 }
+
+.account-context {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.screen-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.screen-actions .primary-button {
+  margin-top: 0;
+}
+
+.primary-link,
+.secondary-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 10px 16px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.primary-link {
+  border: 1px solid var(--forest);
+  color: #fffdf8;
+  background: var(--forest);
+}
+
+.primary-link:hover { background: var(--forest-light); }
+
+.secondary-link {
+  border: 1px solid var(--line);
+  color: var(--forest);
+  background: var(--paper);
+}
+
+.secondary-link:hover { border-color: var(--forest-light); }
 
 .teacher-shell {
   min-height: 100vh;

@@ -22,9 +22,9 @@ export function validateClassName(name: string): string | null {
   return null;
 }
 
-export function sortClassesByLastAccessed(
-  classes: TeacherClass[],
-): TeacherClass[] {
+export function sortClassesByLastAccessed<
+  T extends { id: number; last_accessed_at: string },
+>(classes: T[]): T[] {
   return [...classes].sort((left, right) => {
     const timestampDifference =
       Date.parse(right.last_accessed_at) - Date.parse(left.last_accessed_at);

@@ -1,22 +1,27 @@
 # Leafmark reading program
 
-Leafmark is a React and TypeScript reading application for teachers. It uses
-Supabase for authentication and class data, and it is configured for deployment
-through Vercel.
+Leafmark is a React and TypeScript reading application for teachers and students.
+It uses Supabase for authentication and class data, and it is configured for
+deployment through Vercel.
 
 ## What is included
 
 - Teacher email/password sign-up, sign-in, session restoration, and sign-out
+- A separate student sign-up and sign-in portal at `/student`
+- Protected teacher/student account profiles with role-aware routing
 - A teacher class menu with responsive class tiles
 - Class creation and persistent last-accessed ordering
+- A student class menu backed by many-to-many class memberships
+- Per-student class access times, independent of the teacher's access ordering
 - Human-readable access times that update while the menu is open
-- A placeholder class workspace ready for future roster and reading features
-- Per-teacher Row Level Security for all class data
+- Placeholder teacher and student workspaces ready for future reading features
+- Row Level Security for account profiles, classes, and student memberships
 - Credential, class validation, sorting, and relative-time unit tests
 - Vercel SPA rewrites and production build settings
 
-Student authentication is intentionally not included yet. Every authenticated
-account is currently treated as a teacher account.
+Teacher-managed enrollment and class event notifications are not included yet.
+For now, student memberships can be added through the Supabase SQL Editor using
+the temporary provisioning query below.
 
 ## Prerequisites
 
@@ -43,14 +48,16 @@ Under **Authentication -> URL Configuration**, configure:
 
 - **Site URL:** your final production Vercel or custom domain
 - **Redirect URLs:** `http://localhost:5173/**`
+- **Redirect URLs:** `https://your-production-domain/student`
 - Optionally, a narrowly scoped Vercel preview wildcard such as
   `https://*-your-vercel-team-slug.vercel.app/**`
 
-## 2. Apply the class database migration
+## 2. Apply the database migrations
 
-The tracked migration at
-`supabase/migrations/20260827231521_create_teacher_classes.sql` creates the
-`classes` table, index, minimum grants, and ownership policies. Vercel deploys
+The tracked migrations create teacher-owned classes, protected account profiles,
+student memberships, indexes, minimum grants, and Row Level Security policies.
+Existing authenticated accounts are backfilled as teachers. New accounts are
+assigned their account type from the portal used during sign-up. Vercel deploys
 the frontend but does not apply Supabase database migrations for this project.
 
 From the repository root, authenticate and link the CLI to your hosted project:
@@ -64,6 +71,10 @@ npx.cmd supabase db push
 Your project reference is the value before `.supabase.co` in the project URL.
 The CLI may ask for the project's database password. This operation is required
 once for each Supabase environment that should support classes.
+
+Apply the migrations before deploying the student-enabled frontend. The new
+frontend intentionally shows a setup error when its account-profile migration is
+missing.
 
 If PowerShell blocks `npm.ps1` or `npx.ps1`, use the `.cmd` commands shown above,
 or set a user-scoped execution policy if that is permitted on your machine.
@@ -92,8 +103,33 @@ npm.cmd install
 npm.cmd run dev
 ```
 
-Open `http://localhost:5173`. Sign in as a teacher, create a class, open it,
-return to the menu, and refresh the page to verify persistence.
+Open `http://localhost:5173` for teachers or
+`http://localhost:5173/student` for students. Sign in as a teacher, create a
+class, open it, return to the menu, and refresh the page to verify persistence.
+
+To preview an enrolled student's dashboard before enrollment controls are built:
+
+1. Create and confirm a student account at `/student`.
+2. Create a class from the teacher dashboard and note its numeric `id` in the
+   Supabase Table Editor.
+3. Run this in the Supabase SQL Editor after replacing both example values:
+
+```sql
+insert into public.class_memberships (class_id, teacher_id, student_id)
+select c.id, c.teacher_id, u.id
+from public.classes as c
+join auth.users as u
+  on lower(u.email) = lower('student@example.com')
+join public.profiles as p
+  on p.id = u.id
+ and p.account_type = 'student'
+where c.id = 123
+on conflict (class_id, student_id) do nothing;
+```
+
+The query inserts nothing if the email is not a student account or the class ID
+does not exist. Repeat it with another class ID to place the same student in
+multiple classes.
 
 Other useful commands:
 
@@ -115,17 +151,23 @@ Environment changes apply to new deployments, so redeploy afterward. Vercel
 will detect Vite, run `npm run build`, and publish `dist`.
 
 Pushing a commit to the connected Git repository triggers a deployment. The
-Supabase migration from step 2 must already be applied to the project referenced
-by the Vercel environment variables.
+Supabase migrations from step 2 must already be applied to the project referenced
+by the Vercel environment variables. The existing Vercel SPA rewrite makes a
+direct visit to `/student` resolve to the React application.
 
 ## Before a public launch
 
 - Configure custom SMTP. Supabase's default email service is intended only for
   limited testing.
 - Test with two teacher accounts and confirm that each sees only its own classes.
-- Test sign-up, email confirmation, sign-in, refresh, class creation, and sign-out
-  on the exact production domain.
-- Add separate student authorization rules before implementing student access.
+- Test with a teacher and student account; confirm the student sees only enrolled
+  classes and has no class-creation control.
+- Test teacher and student sign-up, email confirmation, both portal paths,
+  refresh, class creation, and sign-out on the exact production domain.
+- Decide whether teacher registration should require an invitation or school
+  approval. The current teacher sign-up page is intentionally public.
+- Add teacher-managed enrollment and notification delivery before relying on
+  those workflows.
 
 See the official [Supabase React Auth quickstart](https://supabase.com/docs/guides/auth/quickstarts/react),
 [Row Level Security guide](https://supabase.com/docs/guides/database/postgres/row-level-security),

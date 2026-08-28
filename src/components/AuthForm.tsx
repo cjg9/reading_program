@@ -1,10 +1,45 @@
 import { useState, type FormEvent } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { portalPath, type AccountType } from "../lib/portal";
 import { validateCredentials, type AuthMode } from "../lib/validation";
 
 interface AuthFormProps {
   client: SupabaseClient;
+  portal: AccountType;
 }
+
+const portalCopy = {
+  teacher: {
+    eyebrow: "Teacher portal",
+    createHeading: "Create a teacher account",
+    signInHeading: "Teacher sign in",
+    createIntro: "Set up a secure home for your classes.",
+    signInIntro: "Sign in to open your class menu.",
+    emailPlaceholder: "teacher@school.org",
+    createdNotice:
+      "Teacher account created. Check your inbox to confirm your email, then sign in.",
+    createButton: "Create teacher account",
+    privacyLabel: "Teacher",
+    alternatePath: portalPath.student,
+    alternatePrompt: "Are you a student?",
+    alternateLabel: "Open student sign in",
+  },
+  student: {
+    eyebrow: "Student portal",
+    createHeading: "Create a student account",
+    signInHeading: "Student sign in",
+    createIntro: "Create one account for all of your reading classes.",
+    signInIntro: "Sign in to see the classes you have joined.",
+    emailPlaceholder: "student@school.org",
+    createdNotice:
+      "Student account created. Check your inbox to confirm your email, then sign in.",
+    createButton: "Create student account",
+    privacyLabel: "Student",
+    alternatePath: portalPath.teacher,
+    alternatePrompt: "Are you a teacher?",
+    alternateLabel: "Open teacher sign in",
+  },
+} satisfies Record<AccountType, Record<string, string>>;
 
 function getFriendlyError(message: string): string {
   const normalized = message.toLowerCase();
@@ -28,7 +63,7 @@ function getFriendlyError(message: string): string {
   return message;
 }
 
-export function AuthForm({ client }: AuthFormProps) {
+export function AuthForm({ client, portal }: AuthFormProps) {
   const [mode, setMode] = useState<AuthMode>("sign-in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -39,6 +74,7 @@ export function AuthForm({ client }: AuthFormProps) {
   const [notice, setNotice] = useState<string | null>(null);
 
   const isSignUp = mode === "sign-up";
+  const copy = portalCopy[portal];
 
   function changeMode(nextMode: AuthMode) {
     setMode(nextMode);
@@ -78,7 +114,11 @@ export function AuthForm({ client }: AuthFormProps) {
           email: email.trim(),
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/`,
+            data: { signup_portal: portal },
+            emailRedirectTo: new URL(
+              portalPath[portal],
+              window.location.origin,
+            ).toString(),
           },
         });
 
@@ -87,9 +127,7 @@ export function AuthForm({ client }: AuthFormProps) {
         }
 
         if (!data.session) {
-          setNotice(
-            "Teacher account created. Check your inbox to confirm your email, then sign in.",
-          );
+          setNotice(copy.createdNotice);
           setPassword("");
           setPasswordConfirmation("");
         }
@@ -117,14 +155,12 @@ export function AuthForm({ client }: AuthFormProps) {
   return (
     <section className="auth-card" aria-labelledby="auth-heading">
       <div className="auth-card-header">
-        <p className="eyebrow">Teacher portal</p>
+        <p className="eyebrow">{copy.eyebrow}</p>
         <h1 id="auth-heading">
-          {isSignUp ? "Create a teacher account" : "Teacher sign in"}
+          {isSignUp ? copy.createHeading : copy.signInHeading}
         </h1>
         <p className="auth-intro">
-          {isSignUp
-            ? "Set up a secure home for your classes."
-            : "Sign in to open your class menu."}
+          {isSignUp ? copy.createIntro : copy.signInIntro}
         </p>
       </div>
 
@@ -156,7 +192,7 @@ export function AuthForm({ client }: AuthFormProps) {
             type="email"
             inputMode="email"
             autoComplete="email"
-            placeholder="teacher@school.org"
+            placeholder={copy.emailPlaceholder}
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             disabled={busy}
@@ -220,14 +256,18 @@ export function AuthForm({ client }: AuthFormProps) {
               ? "Creating account..."
               : "Signing in..."
             : isSignUp
-              ? "Create teacher account"
+              ? copy.createButton
               : "Sign in"}
         </button>
       </form>
 
       <p className="privacy-note">
-        Teacher authentication is securely managed by Supabase. This app never
+        {copy.privacyLabel} authentication is securely managed by Supabase. This app never
         stores plaintext passwords.
+      </p>
+      <p className="portal-switch">
+        {copy.alternatePrompt}{" "}
+        <a href={copy.alternatePath}>{copy.alternateLabel}</a>
       </p>
     </section>
   );
