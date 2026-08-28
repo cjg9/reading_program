@@ -1,14 +1,14 @@
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import { AuthForm } from "./components/AuthForm";
 import { Brand } from "./components/Brand";
-import { UserHome } from "./components/UserHome";
+import { TeacherDashboard } from "./components/TeacherDashboard";
 
 function LoadingScreen() {
   return (
     <main className="centered-screen" aria-busy="true" aria-label="Loading session">
       <Brand />
       <span className="loader" aria-hidden="true" />
-      <p>Opening your reading space…</p>
+      <p>Opening your classes...</p>
     </main>
   );
 }
@@ -56,7 +56,7 @@ function AppContent() {
         <Brand />
         <section className="setup-card" aria-labelledby="session-error-heading">
           <p className="eyebrow">Session unavailable</p>
-          <h1 id="session-error-heading">We couldn’t open the app</h1>
+          <h1 id="session-error-heading">We could not open the app</h1>
           <p>{error}</p>
           <button
             className="primary-button"
@@ -71,7 +71,7 @@ function AppContent() {
   }
 
   if (session?.user) {
-    return <UserHome client={client} user={session.user} />;
+    return <TeacherDashboard client={client} user={session.user} />;
   }
 
   return (
@@ -79,16 +79,17 @@ function AppContent() {
       <section className="story-panel" aria-labelledby="story-heading">
         <Brand />
         <div className="story-copy">
-          <p className="eyebrow light">A reading practice, not a scoreboard</p>
-          <h2 id="story-heading">Make room for the books that stay with you.</h2>
+          <p className="eyebrow light">A home for every reading community</p>
+          <h2 id="story-heading">Give every class room to grow as readers.</h2>
           <p>
-            Keep a thoughtful record of what you read, what moved you, and what
-            you want to discover next.
+            Create welcoming class spaces, support thoughtful reading, and keep
+            each group organized in one calm place.
           </p>
         </div>
         <blockquote>
-          “A reader lives a thousand lives before he dies.”
-          <cite>— George R. R. Martin</cite>
+          &ldquo;Reading is an exercise in empathy; an exercise in walking in
+          someone else&apos;s shoes for a while.&rdquo;
+          <cite>&mdash; Malorie Blackman</cite>
         </blockquote>
       </section>
 

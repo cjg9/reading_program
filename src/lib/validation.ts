@@ -19,7 +19,11 @@ export function validateCredentials({
     return "Enter a valid email address.";
   }
 
-  if (password.length < 8) {
+  if (!password) {
+    return "Enter your password.";
+  }
+
+  if (mode === "sign-up" && password.length < 8) {
     return "Password must be at least 8 characters.";
   }
 

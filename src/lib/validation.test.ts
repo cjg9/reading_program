@@ -12,6 +12,26 @@ describe("validateCredentials", () => {
     ).toBeNull();
   });
 
+  it("allows an existing teacher to attempt sign-in with a short password", () => {
+    expect(
+      validateCredentials({
+        mode: "sign-in",
+        email: "teacher@example.com",
+        password: "legacy",
+      }),
+    ).toBeNull();
+  });
+
+  it("requires a password for sign-in", () => {
+    expect(
+      validateCredentials({
+        mode: "sign-in",
+        email: "teacher@example.com",
+        password: "",
+      }),
+    ).toBe("Enter your password.");
+  });
+
   it("rejects an invalid email", () => {
     expect(
       validateCredentials({

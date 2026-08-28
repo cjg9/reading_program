@@ -1,9 +1,6 @@
 import { useState, type FormEvent } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import {
-  validateCredentials,
-  type AuthMode,
-} from "../lib/validation";
+import { validateCredentials, type AuthMode } from "../lib/validation";
 
 interface AuthFormProps {
   client: SupabaseClient;
@@ -91,7 +88,7 @@ export function AuthForm({ client }: AuthFormProps) {
 
         if (!data.session) {
           setNotice(
-            "Account created. Check your inbox to confirm your email, then sign in.",
+            "Teacher account created. Check your inbox to confirm your email, then sign in.",
           );
           setPassword("");
           setPasswordConfirmation("");
@@ -120,14 +117,14 @@ export function AuthForm({ client }: AuthFormProps) {
   return (
     <section className="auth-card" aria-labelledby="auth-heading">
       <div className="auth-card-header">
-        <p className="eyebrow">Your next chapter starts here</p>
+        <p className="eyebrow">Teacher portal</p>
         <h1 id="auth-heading">
-          {isSignUp ? "Create your account" : "Welcome back"}
+          {isSignUp ? "Create a teacher account" : "Teacher sign in"}
         </h1>
         <p className="auth-intro">
           {isSignUp
-            ? "A quieter way to build your reading life."
-            : "Sign in to pick up where you left off."}
+            ? "Set up a secure home for your classes."
+            : "Sign in to open your class menu."}
         </p>
       </div>
 
@@ -138,7 +135,7 @@ export function AuthForm({ client }: AuthFormProps) {
           aria-pressed={mode === "sign-in"}
           onClick={() => changeMode("sign-in")}
         >
-          Log in
+          Sign in
         </button>
         <button
           type="button"
@@ -146,7 +143,7 @@ export function AuthForm({ client }: AuthFormProps) {
           aria-pressed={mode === "sign-up"}
           onClick={() => changeMode("sign-up")}
         >
-          Sign up
+          Create account
         </button>
       </div>
 
@@ -159,7 +156,7 @@ export function AuthForm({ client }: AuthFormProps) {
             type="email"
             inputMode="email"
             autoComplete="email"
-            placeholder="reader@example.com"
+            placeholder="teacher@school.org"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             disabled={busy}
@@ -179,7 +176,7 @@ export function AuthForm({ client }: AuthFormProps) {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               disabled={busy}
-              minLength={8}
+              minLength={isSignUp ? 8 : 1}
               required
             />
             <button
@@ -220,17 +217,17 @@ export function AuthForm({ client }: AuthFormProps) {
         <button className="primary-button" type="submit" disabled={busy}>
           {busy
             ? isSignUp
-              ? "Creating account…"
-              : "Signing in…"
+              ? "Creating account..."
+              : "Signing in..."
             : isSignUp
-              ? "Create account"
-              : "Log in"}
+              ? "Create teacher account"
+              : "Sign in"}
         </button>
       </form>
 
       <p className="privacy-note">
-        Authentication is securely managed by Supabase. We never store plaintext
-        passwords.
+        Teacher authentication is securely managed by Supabase. This app never
+        stores plaintext passwords.
       </p>
     </section>
   );
