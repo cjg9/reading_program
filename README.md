@@ -14,14 +14,16 @@ deployment through Vercel.
 - A student class menu backed by many-to-many class memberships
 - Per-student class access times, independent of the teacher's access ordering
 - Human-readable access times that update while the menu is open
-- Placeholder teacher and student workspaces ready for future reading features
+- Teacher roster, individual email invitations, resend and revoke controls
+- Email-bound student signup/sign-in and atomic class enrollment
+- Placeholder reading workspaces ready for future reading features
 - Row Level Security for account profiles, classes, and student memberships
 - Credential, class validation, sorting, and relative-time unit tests
 - Vercel SPA rewrites and production build settings
 
-Teacher-managed enrollment and class event notifications are not included yet.
-For now, student memberships can be added through the Supabase SQL Editor using
-the temporary provisioning query below.
+See [invitation setup and verification](docs/invitations.md) for the Resend,
+Supabase SMTP, Edge Function, and callback settings needed to send invitations.
+Reading assignments and class event notifications are not included yet.
 
 ## Prerequisites
 
@@ -36,7 +38,7 @@ In Supabase Dashboard, open **Project Settings -> API Keys** and copy:
 1. The project URL
 2. The publishable key beginning with `sb_publishable_`
 
-Do not use a secret key or the legacy `service_role` key in this application.
+Do not use a secret key or the legacy `service_role` key in the browser application.
 The publishable key is designed for browser use; the included Row Level
 Security policies protect class records.
 
@@ -49,6 +51,7 @@ Under **Authentication -> URL Configuration**, configure:
 - **Site URL:** your final production Vercel or custom domain
 - **Redirect URLs:** `http://localhost:5173/**`
 - **Redirect URLs:** `https://your-production-domain/student`
+- **Redirect URLs:** `https://your-production-domain/student/invite?**`
 - Optionally, a narrowly scoped Vercel preview wildcard such as
   `https://*-your-vercel-team-slug.vercel.app/**`
 
@@ -107,7 +110,7 @@ Open `http://localhost:5173` for teachers or
 `http://localhost:5173/student` for students. Sign in as a teacher, create a
 class, open it, return to the menu, and refresh the page to verify persistence.
 
-To preview an enrolled student's dashboard before enrollment controls are built:
+For local administrator-only provisioning without sending an email:
 
 1. Create and confirm a student account at `/student`.
 2. Create a class from the teacher dashboard and note its numeric `id` in the
@@ -166,8 +169,7 @@ direct visit to `/student` resolve to the React application.
   refresh, class creation, and sign-out on the exact production domain.
 - Decide whether teacher registration should require an invitation or school
   approval. The current teacher sign-up page is intentionally public.
-- Add teacher-managed enrollment and notification delivery before relying on
-  those workflows.
+- Complete the [invitation deployment and live email checks](docs/invitations.md).
 
 See the official [Supabase React Auth quickstart](https://supabase.com/docs/guides/auth/quickstarts/react),
 [Row Level Security guide](https://supabase.com/docs/guides/database/postgres/row-level-security),

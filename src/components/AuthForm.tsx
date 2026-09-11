@@ -2,10 +2,12 @@ import { useState, type FormEvent } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { portalPath, type AccountType } from "../lib/portal";
 import { validateCredentials, type AuthMode } from "../lib/validation";
+import { inviteRedirect } from "../lib/invitations";
 
 interface AuthFormProps {
   client: SupabaseClient;
   portal: AccountType;
+  invitation?: { email: string; token: string };
 }
 
 const portalCopy = {
@@ -63,9 +65,9 @@ function getFriendlyError(message: string): string {
   return message;
 }
 
-export function AuthForm({ client, portal }: AuthFormProps) {
-  const [mode, setMode] = useState<AuthMode>("sign-in");
-  const [email, setEmail] = useState("");
+export function AuthForm({ client, portal, invitation }: AuthFormProps) {
+  const [mode, setMode] = useState<AuthMode>(invitation ? "sign-up" : "sign-in");
+  const [email, setEmail] = useState(invitation?.email ?? "");
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -115,7 +117,7 @@ export function AuthForm({ client, portal }: AuthFormProps) {
           password,
           options: {
             data: { signup_portal: portal },
-            emailRedirectTo: new URL(
+            emailRedirectTo: invitation ? inviteRedirect(window.location.origin, invitation.token) : new URL(
               portalPath[portal],
               window.location.origin,
             ).toString(),
@@ -127,7 +129,9 @@ export function AuthForm({ client, portal }: AuthFormProps) {
         }
 
         if (!data.session) {
-          setNotice(copy.createdNotice);
+          setNotice(invitation
+            ? "Check your inbox for the confirmation link to return to this class invitation. If you already have an account, choose Sign in."
+            : copy.createdNotice);
           setPassword("");
           setPasswordConfirmation("");
         }
@@ -194,6 +198,7 @@ export function AuthForm({ client, portal }: AuthFormProps) {
             autoComplete="email"
             placeholder={copy.emailPlaceholder}
             value={email}
+            readOnly={Boolean(invitation)}
             onChange={(event) => setEmail(event.target.value)}
             disabled={busy}
             required
@@ -265,10 +270,10 @@ export function AuthForm({ client, portal }: AuthFormProps) {
         {copy.privacyLabel} authentication is securely managed by Supabase. This app never
         stores plaintext passwords.
       </p>
-      <p className="portal-switch">
+      {!invitation && <p className="portal-switch">
         {copy.alternatePrompt}{" "}
         <a href={copy.alternatePath}>{copy.alternateLabel}</a>
-      </p>
+      </p>}
     </section>
   );
 }

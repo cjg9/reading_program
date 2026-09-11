@@ -15,6 +15,7 @@ import {
   type TeacherClass,
 } from "../lib/classes";
 import { Brand } from "./Brand";
+import { ClassPeople } from "./ClassPeople";
 
 interface TeacherDashboardProps {
   client: SupabaseClient;
@@ -283,12 +284,12 @@ export function TeacherDashboard({ client, user }: TeacherDashboardProps) {
             {selectedClass.name}
           </h1>
           <p>
-            This class is ready. Student rosters and reading tools can be added
-            here in the next stage.
+            Invite your students and keep track of who has joined.
           </p>
           <time dateTime={selectedClass.last_accessed_at}>
             Last accessed: {formatRelativeTime(selectedClass.last_accessed_at, clock)}
           </time>
+          <ClassPeople key={selectedClass.id} client={client} classId={selectedClass.id} />
           {actionError && (
             <p className="error-message workspace-message" aria-live="polite">
               {actionError}

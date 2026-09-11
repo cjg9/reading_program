@@ -5,6 +5,7 @@ import { AuthForm } from "./components/AuthForm";
 import { Brand } from "./components/Brand";
 import { StudentDashboard } from "./components/StudentDashboard";
 import { TeacherDashboard } from "./components/TeacherDashboard";
+import { InvitationPage } from "./components/InvitationPage";
 import {
   portalPath,
   resolvePortal,
@@ -223,8 +224,9 @@ function AppContent() {
     session,
   } = useAuth();
   const portal = resolvePortal(window.location.pathname);
+  const isInvitation = window.location.pathname.replace(/\/+$/, "") === "/student/invite";
 
-  if (!portal) {
+  if (!portal && !isInvitation) {
     return <NotFoundScreen />;
   }
 
@@ -255,6 +257,10 @@ function AppContent() {
       </main>
     );
   }
+
+  if (isInvitation) return <InvitationPage client={client} user={session?.user} />;
+
+  if (!portal) return <NotFoundScreen />;
 
   if (session?.user) {
     if (profileState.status === "error" && profileState.userId === session.user.id) {
