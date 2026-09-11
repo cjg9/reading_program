@@ -29,6 +29,7 @@ create table app_private.invitation_send_attempts (
   teacher_id uuid not null references auth.users(id) on delete cascade,
   attempted_at timestamptz not null default now()
 );
+alter table app_private.invitation_send_attempts enable row level security;
 create index invitation_send_attempts_teacher_time on app_private.invitation_send_attempts(teacher_id, attempted_at);
 revoke all on app_private.invitation_send_attempts from public, anon, authenticated, service_role;
 
