@@ -22,6 +22,12 @@ Deno.serve(async (request: Request) => {
     const { data: { user }, error: authError } = await admin.auth.getUser(jwt);
     if (authError || !user || !user.email_confirmed_at) return reply(401, { error: "Sign in with a confirmed account." });
     const body = await request.json();
+    if (typeof body.firstName !== "string" || typeof body.lastName !== "string"
+      || !body.firstName.trim() || !body.lastName.trim()
+      || [...body.firstName.trim()].length > 80 || [...body.lastName.trim()].length > 80
+      || /[\u0000-\u001f\u007f]/.test(body.firstName + body.lastName)) {
+      return reply(400, { error: "Enter a first and last name, each between 1 and 80 characters. Refresh the page if name fields are missing." });
+    }
     if (!Number.isSafeInteger(body.classId) || body.classId <= 0 || typeof body.email !== "string") {
       return reply(400, { error: "A class and student email address are required." });
     }
@@ -32,8 +38,9 @@ Deno.serve(async (request: Request) => {
     const token = Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, "0")).join("");
     const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
     const tokenHash = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, "0")).join("");
-    const { data: invitation, error } = await admin.rpc("prepare_class_invitation", {
+    const { data: invitation, error } = await admin.rpc("prepare_named_class_invitation", {
       p_teacher_id: user.id, p_class_id: body.classId, p_email: body.email, p_token_hash: tokenHash,
+      p_first_name: body.firstName.trim(), p_last_name: body.lastName.trim(),
     });
     if (error) return reply(400, { error: error.message });
     const link = new URL("/student/invite", siteUrl);

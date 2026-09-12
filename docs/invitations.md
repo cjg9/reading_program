@@ -1,6 +1,16 @@
 # Class invitation setup and verification
 
 Teachers open a class and send a personal invitation to one student's email.
+The invitation table collects first name, last name, and email for up to 30
+students at once. Add or remove rows, then send the batch with one button.
+Validation checks every row before sending, including duplicate emails. Each
+student gets a separate message. Rows show individual results and retries skip
+rows already marked sent. Keep the class open while sending; leaving stops the
+remaining batch after the current request. Draft rows are not persisted.
+Names are saved with the class invitation and shown in the teacher's roster
+after enrollment; they do not change the student's authentication identity.
+Older unnamed invitations still work for acceptance. To resend an older unnamed
+invitation, enter its recipient with names in the table.
 The link opens `/student/invite?token=...`. New students create an account and
 confirm their email; the confirmation returns to the same invitation. Existing
 students sign in. The student explicitly chooses **Join class**, then opens
@@ -14,6 +24,10 @@ link. Revoking an invite does not remove a student who already joined.
    with the project linked, or run the migration in the dashboard SQL Editor.
    Dashboard SQL runs must also be recorded in migration history before later
    CLI migration pushes.
+   Then apply `20260912090000_invitation_student_names.sql` before deploying the
+   named invitation table or updated email function. It retains the old roster
+   RPC for compatibility while adding a named roster and service-only named send
+   preparation RPC.
 2. Verify `dotreading.com` in Resend. Create a sending-only API key restricted
    to that domain. Configure Supabase custom SMTP: `smtp.resend.com`, port
    `465`, user `resend`, password = the Resend API key, sender
@@ -49,6 +63,7 @@ link. Revoking an invite does not remove a student who already joined.
 - A teacher can send at most 30 invitations per hour and resend to the same
   class/email once per minute. A failed send consumes an attempt. Resend account
   quotas still apply. Teacher signup remains public, as in the existing app.
+  Bulk sending uses paced individual requests and does not bypass these limits.
 - Sent means accepted by the email provider, not confirmed inbox delivery.
   Network failures show delivery unconfirmed. A crashed function can leave
   delivery pending; teachers can retry after the cooldown. Retries replace the

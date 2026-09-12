@@ -1,0 +1,90 @@
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { MAX_INVITE_ROWS, validateRecipients, type InviteRecipient } from "../lib/invite-batch";
+
+interface Entry extends InviteRecipient { id: number; status: "ready" | "sending" | "sent" | "failed"; error: string }
+interface Props {
+  send: (recipient: InviteRecipient) => Promise<void>;
+  onComplete: () => Promise<void>;
+  onBusyChange: (busy: boolean) => void;
+  disabled: boolean;
+}
+
+export function InviteTable({ send, onComplete, onBusyChange, disabled }: Props) {
+  const nextId = useRef(1);
+  const blank = (): Entry => ({id:nextId.current++,firstName:"",lastName:"",email:"",status:"ready",error:""});
+  const [rows, setRows] = useState<Entry[]>(() => [blank()]);
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState("");
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  const pending = rows.filter(row => row.status !== "sent");
+
+  function update(id: number, field: keyof InviteRecipient, value: string) {
+    setRows(current => current.map(row => row.id === id ? {...row,[field]:value,error:"",status:"ready"} : row));
+    setNotice("");
+  }
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (busy || disabled || !pending.length) return;
+    // Include sent rows in duplicate validation so a retry cannot resend them.
+    const errors = validateRecipients(rows);
+    if (errors.some((error,index) => error && rows[index].status !== "sent")) {
+      setRows(current => current.map((row,index) => row.status === "sent" ? row : {...row,error:errors[index]}));
+      setNotice("Check the highlighted rows before sending."); return;
+    }
+    setBusy(true); onBusyChange(true); setNotice("Sending invitations. Keep this class open until the batch finishes.");
+    let sent = 0; let failed = 0;
+    try {
+      for (const [index, row] of pending.entries()) {
+        // Pace calls to the mail provider. Each recipient still has an individual,
+        // server-authorized request and consumes the existing teacher quota.
+        if (index > 0) await new Promise(resolve => setTimeout(resolve, 600));
+        if (!mounted.current) break;
+        setRows(current => current.map(item => item.id === row.id ? {...item,status:"sending",error:""} : item));
+        try {
+          await send({firstName:row.firstName.trim(),lastName:row.lastName.trim(),email:row.email.trim().toLowerCase()});
+          sent++;
+          if (mounted.current) setRows(current => current.map(item => item.id === row.id ? {...item,status:"sent"} : item));
+        } catch (error) {
+          failed++;
+          if (mounted.current) setRows(current => current.map(item => item.id === row.id ? {...item,status:"failed",error:error instanceof Error ? error.message : "Unable to send. Please try again."} : item));
+        }
+      }
+      if (mounted.current) {
+        setNotice(`${sent} invitation${sent === 1 ? "" : "s"} sent.${failed ? ` ${failed} need attention. Retry sends only the unsent rows.` : " Links expire in 7 days."}`);
+        await onComplete();
+      }
+    } finally { if (mounted.current) { setBusy(false); onBusyChange(false); } }
+  }
+
+  return <form className="invite-batch" onSubmit={submit} noValidate>
+    <div className="invite-table-scroll"><table className="invite-table">
+      <caption>Student invitations — enter one student per row</caption>
+      <thead><tr><th scope="col">First name</th><th scope="col">Last name</th><th scope="col">Email address</th><th scope="col">Status</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
+      <tbody>{rows.map((row,index) => <tr key={row.id}>
+        {(["firstName","lastName","email"] as const).map((field,fieldIndex) => <td key={field}>
+          <input aria-label={`${["First name","Last name","Email address"][fieldIndex]} ${index + 1}`}
+            type={field === "email" ? "email" : "text"} autoComplete="off" value={row[field]}
+            maxLength={field === "email" ? 254 : 80} required disabled={busy || disabled || row.status === "sent"}
+            aria-invalid={Boolean(row.error)} aria-describedby={row.error ? `invite-row-${row.id}-error` : undefined}
+            onChange={event => update(row.id,field,event.target.value)} />
+        </td>)}
+        <td className="invite-row-status"><span>{row.status === "sent" ? "Sent" : row.status === "sending" ? "Sending..." : row.error ? "Needs attention" : "Ready"}</span>
+          {row.error && <p id={`invite-row-${row.id}-error`} className="error-message">{row.error}</p>}</td>
+        <td><button className="text-button" type="button" aria-label={`Remove student ${index + 1}`} disabled={busy || disabled || rows.length === 1}
+          onClick={() => { setRows(current => current.filter(item => item.id !== row.id)); setNotice(""); }}>Remove</button></td>
+      </tr>)}</tbody>
+    </table></div>
+    <div className="invite-batch-actions">
+      <button className="secondary-button" type="button" disabled={busy || disabled || rows.length >= MAX_INVITE_ROWS}
+        onClick={() => { setRows(current => [...current,blank()]); setNotice(""); }}>Add student</button>
+      {rows.some(row => row.status === "sent") && <button className="text-button" type="button" disabled={busy || disabled}
+        onClick={() => { setRows(current => { const unsent = current.filter(row => row.status !== "sent"); return unsent.length ? unsent : [blank()]; }); setNotice(""); }}>Clear sent rows</button>}
+      <button className="primary-button" disabled={busy || disabled || pending.length === 0} type="submit">
+        {busy ? "Sending..." : `${rows.some(row => row.status === "failed") ? "Retry" : "Send"} ${pending.length > 1 ? `${pending.length} invitations` : "invitation"}`}
+      </button>
+    </div>
+    <p className="people-help">Up to {MAX_INVITE_ROWS} students per batch. The existing limit of 30 invitations per hour applies across your classes. Each student receives a separate email.</p>
+    <p role="status" aria-live="polite">{notice}</p>
+  </form>;
+}

@@ -14,7 +14,7 @@ deployment through Vercel.
 - A student class menu backed by many-to-many class memberships
 - Per-student class access times, independent of the teacher's access ordering
 - Human-readable access times that update while the menu is open
-- Teacher roster, individual email invitations, resend and revoke controls
+- Teacher roster, named student invitations, bulk entry table, resend and revoke controls
 - Email-bound student signup/sign-in and atomic class enrollment
 - Placeholder reading workspaces ready for future reading features
 - Row Level Security for account profiles, classes, and student memberships

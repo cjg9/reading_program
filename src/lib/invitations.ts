@@ -1,4 +1,6 @@
 export interface ClassInvitation {
+  first_name?: string | null;
+  last_name?: string | null;
   id: string;
   email: string;
   expires_at: string;

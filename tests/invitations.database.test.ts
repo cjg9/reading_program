@@ -32,7 +32,7 @@ beforeAll(async () => {
       $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
     grant usage on schema auth,public to anon,authenticated,service_role;
   `);
-  for (const file of ["20260827231521_create_teacher_classes.sql", "20260828185336_add_student_accounts.sql", "20260910090000_class_invitations.sql"]) {
+  for (const file of ["20260827231521_create_teacher_classes.sql", "20260828185336_add_student_accounts.sql", "20260910090000_class_invitations.sql", "20260912090000_invitation_student_names.sql"]) {
     await db.exec(readFileSync(new URL(`../supabase/migrations/${file}`, import.meta.url), "utf8"));
   }
   await db.query(`insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) values
@@ -46,6 +46,26 @@ afterEach(async () => { await db.exec("rollback; reset role"); });
 afterAll(async () => { await db.close(); });
 
 describe("class invitation authorization and lifecycle", () => {
+  it("stores trimmed names and returns them only in the owning teacher's roster", async () => {
+    await db.query("select prepare_named_class_invitation($1,1,$2,$3,$4,$5)",[teacher,"student@example.test",hash," Zoë "," O'Neil "]);
+    await asUser(student); await accept(); await asUser(teacher);
+    expect((await db.query("select * from class_roster_named(1)")).rows[0]).toMatchObject({first_name:"Zoë",last_name:"O'Neil",email:"student@example.test"});
+    expect((await db.query("select first_name,last_name from class_invitations")).rows[0]).toEqual({first_name:"Zoë",last_name:"O'Neil"});
+  });
+  it("rejects missing names before consuming a send attempt", async () => {
+    await expect(db.query("select prepare_named_class_invitation($1,1,$2,$3,'','Reader')",[teacher,"student@example.test",hash])).rejects.toThrow("first and last name");
+  });
+  it("applies the existing resend cooldown to named invitations", async () => {
+    await prepare();
+    await expect(db.query("select prepare_named_class_invitation($1,1,$2,$3,'Sam','Reader')",[teacher,"student@example.test",nextHash])).rejects.toThrow("Wait one minute");
+  });
+  it("does not expose named rosters to other teachers", async () => {
+    await asUser(otherTeacher); await expect(db.query("select * from class_roster_named(1)")).rejects.toThrow("Class unavailable");
+  });
+  it("keeps older unnamed invitations compatible", async () => {
+    await prepare(); await asUser(student); await accept(); await asUser(teacher);
+    expect((await db.query("select * from class_roster_named(1)")).rows[0]).toMatchObject({first_name:null,last_name:null});
+  });
   it("only allows the service to prepare an invitation for an owning teacher", async () => {
     await expect(prepare("student@example.test", otherTeacher)).rejects.toThrow("Class unavailable");
   });
