@@ -7,6 +7,16 @@ Validation checks every row before sending, including duplicate emails. Each
 student gets a separate message. Rows show individual results and retries skip
 rows already marked sent. Keep the class open while sending; leaving stops the
 remaining batch after the current request. Draft rows are not persisted.
+
+Teachers can paste spreadsheet columns, comma-separated rows, or one full name
+and email per line into **Paste a student list**, then choose **Add list to table**.
+First/last/email or full-name/email headers are optional; recognized headers may
+be reordered. Lists append to existing entries and never send automatically.
+Multiple spreadsheet cells can also be pasted directly into a table field.
+Review the name split and correct highlighted missing details or duplicate
+emails before sending. An import exceeding 30 total rows is rejected in full,
+with the pasted text preserved for editing.
+
 Names are saved with the class invitation and shown in the teacher's roster
 after enrollment; they do not change the student's authentication identity.
 Older unnamed invitations still work for acceptance. To resend an older unnamed
