@@ -3,7 +3,9 @@ import { isAccountType, resolvePortal } from "./portal";
 
 describe("resolvePortal", () => {
   it.each([
-    ["/", "teacher"],
+    ["/", "student"],
+    ["/teacher", "teacher"],
+    ["/teacher/", "teacher"],
     ["/student", "student"],
     ["/student/", "student"],
     ["/student///", "student"],
@@ -11,7 +13,7 @@ describe("resolvePortal", () => {
     expect(resolvePortal(pathname)).toBe(portal);
   });
 
-  it.each(["/teacher", "/students", "/student/classes", ""])(
+  it.each(["/teachers", "/students", "/student/classes", "/teacher/classes", ""])(
     "rejects the unsupported path %s",
     (pathname) => {
       expect(resolvePortal(pathname)).toBeNull();

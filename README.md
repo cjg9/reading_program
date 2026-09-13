@@ -7,7 +7,7 @@ deployment through Vercel.
 ## What is included
 
 - Teacher email/password sign-up, sign-in, session restoration, and sign-out
-- A separate student sign-up and sign-in portal at `/student`
+- Student sign-up and sign-in at `/`, with a separate teacher portal at `/teacher`
 - Protected teacher/student account profiles with role-aware routing
 - A teacher class menu with responsive class tiles
 - Class creation and persistent last-accessed ordering
@@ -59,6 +59,7 @@ Under **Authentication -> URL Configuration**, configure:
 - **Site URL:** your final production Vercel or custom domain
 - **Redirect URLs:** `http://localhost:5173/**`
 - **Redirect URLs:** `https://your-production-domain/student`
+- **Redirect URLs:** `https://your-production-domain/teacher`
 - **Redirect URLs:** `https://your-production-domain/student/invite?**`
 - Optionally, a narrowly scoped Vercel preview wildcard such as
   `https://*-your-vercel-team-slug.vercel.app/**`
@@ -114,13 +115,14 @@ npm.cmd install
 npm.cmd run dev
 ```
 
-Open `http://localhost:5173` for teachers or
-`http://localhost:5173/student` for students. Sign in as a teacher, create a
+Open `http://localhost:5173` for students or
+`http://localhost:5173/teacher` for teachers. The old `/student` path remains a
+student alias so existing bookmarks and callbacks work. Sign in as a teacher, create a
 class, open it, return to the menu, and refresh the page to verify persistence.
 
 For local administrator-only provisioning without sending an email:
 
-1. Create and confirm a student account at `/student`.
+1. Create and confirm a student account at `/`.
 2. Create a class from the teacher dashboard and note its numeric `id` in the
    Supabase Table Editor.
 3. Run this in the Supabase SQL Editor after replacing both example values:
@@ -164,7 +166,7 @@ will detect Vite, run `npm run build`, and publish `dist`.
 Pushing a commit to the connected Git repository triggers a deployment. The
 Supabase migrations from step 2 must already be applied to the project referenced
 by the Vercel environment variables. The existing Vercel SPA rewrite makes a
-direct visit to `/student` resolve to the React application.
+direct visit to `/teacher` or the legacy `/student` path resolve to the React application.
 
 ## Before a public launch
 

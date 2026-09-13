@@ -155,11 +155,11 @@ function NotFoundScreen() {
         <h1 id="not-found-heading">Choose your sign-in portal</h1>
         <p>The page you requested does not exist.</p>
         <div className="screen-actions">
-          <a className="primary-link" href={portalPath.teacher}>
-            Teacher portal
-          </a>
-          <a className="secondary-link" href={portalPath.student}>
+          <a className="primary-link" href={portalPath.student}>
             Student portal
+          </a>
+          <a className="secondary-link" href={portalPath.teacher}>
+            Teacher portal
           </a>
         </div>
       </section>

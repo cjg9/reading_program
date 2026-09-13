@@ -50,7 +50,10 @@ history displays **Removed from class**. A fresh invitation allows them to rejoi
    `465`, user `resend`, password = the Resend API key, sender
    `noreply@dotreading.com`, name `Dot Reading`. Keep email confirmation enabled.
 3. In Supabase Auth URL Configuration, keep the existing URLs and add
-   `https://dotreading.com/student/invite?**`. Local development uses
+   `https://dotreading.com/student/invite?**` and `https://dotreading.com/teacher`.
+   Students sign in at `/`; teachers sign in at `/teacher`. The existing `/student`
+   route remains a student alias, and invitation URLs keep their original path.
+   Local development uses
    `http://localhost:5173/**`. Set the Site URL to `https://dotreading.com/`.
 4. Set the Edge Function secrets `RESEND_API_KEY`,
    `INVITE_FROM_EMAIL=Dot Reading <noreply@dotreading.com>`, and

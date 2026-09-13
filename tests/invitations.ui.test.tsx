@@ -16,6 +16,21 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
+it.each([
+  ["student", "/", "Open teacher sign in", "/teacher"],
+  ["teacher", "/teacher", "Open student sign in", "/"],
+] as const)("returns %s signup confirmations to %s and links to the alternate portal", async (portal, path, alternateLabel, alternatePath) => {
+  const signUp = vi.fn().mockResolvedValue({data:{session:null},error:null});
+  render(<AuthForm client={{auth:{signUp}} as unknown as SupabaseClient} portal={portal} />);
+  expect(screen.getByRole("link",{name:alternateLabel}).getAttribute("href")).toBe(alternatePath);
+  fireEvent.click(screen.getByRole("button",{name:"Create account",exact:true}));
+  fireEvent.change(screen.getByLabelText("Email address",{exact:true}),{target:{value:"person@example.test"}});
+  fireEvent.change(screen.getByLabelText("Password",{exact:true}),{target:{value:"test-password-123"}});
+  fireEvent.change(screen.getByLabelText("Confirm password"),{target:{value:"test-password-123"}});
+  fireEvent.click(screen.getByRole("button",{name:`Create ${portal} account`}));
+  await waitFor(() => expect(signUp).toHaveBeenCalledWith(expect.objectContaining({options:{data:{signup_portal:portal},emailRedirectTo:`${window.location.origin}${path}`}})));
+});
+
 it("preserves the invitation in the signup confirmation link and assigns a student profile", async () => {
   const signUp = vi.fn().mockResolvedValue({data:{session:null},error:null});
   render(<AuthForm client={{auth:{signUp}} as unknown as SupabaseClient} portal="student" invitation={{email:preview.email,token}} />);
@@ -43,7 +58,7 @@ it("requires an explicit Join action, then removes the token and offers the dash
   const join = await screen.findByRole("button",{name:"Join class"});
   expect(rpc.mock.calls.some(([name]) => name === "accept_class_invitation")).toBe(false);
   fireEvent.click(join);
-  expect(await screen.findByRole("link",{name:"Open my classes"})).toBeTruthy();
+  expect((await screen.findByRole("link",{name:"Open my classes"})).getAttribute("href")).toBe("/");
   expect(window.location.search).toBe("");
 });
 

@@ -3,6 +3,7 @@ import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { AuthForm } from "./AuthForm";
 import { Brand } from "./Brand";
 import { hashInviteToken } from "../lib/invitations";
+import { portalPath } from "../lib/portal";
 
 interface Preview { class_name: string; email: string; expires_at: string }
 
@@ -55,7 +56,7 @@ export function InvitationPage({ client, user }: { client: SupabaseClient; user?
 
   if (joined) return <main className="centered-screen"><Brand /><section className="setup-card">
     <p className="eyebrow">You're in</p><h1>Welcome to {preview?.class_name}</h1>
-    <p>Your class is now on your student dashboard.</p><a className="primary-link" href="/student">Open my classes</a>
+    <p>Your class is now on your student dashboard.</p><a className="primary-link" href={portalPath.student}>Open my classes</a>
   </section></main>;
 
   return <main className="invitation-page"><Brand />
