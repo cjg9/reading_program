@@ -25,6 +25,14 @@ See [invitation setup and verification](docs/invitations.md) for the Resend,
 Supabase SMTP, Edge Function, and callback settings needed to send invitations.
 Reading assignments and class event notifications are not included yet.
 
+## Product rule: teachers are class moderators
+
+Treat teachers as moderators of the classes they own when developing features.
+They manage invitations and membership, including removing students. Enforce
+moderation permissions on the server and keep actions scoped to the owned class.
+Removing a student revokes their old class invitations and membership, while
+preserving their account and other classes. A teacher can invite them again.
+
 ## Prerequisites
 
 - Node.js 22.12 or newer

@@ -32,7 +32,7 @@ beforeAll(async () => {
       $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
     grant usage on schema auth,public to anon,authenticated,service_role;
   `);
-  for (const file of ["20260827231521_create_teacher_classes.sql", "20260828185336_add_student_accounts.sql", "20260910090000_class_invitations.sql", "20260912090000_invitation_student_names.sql"]) {
+  for (const file of ["20260827231521_create_teacher_classes.sql", "20260828185336_add_student_accounts.sql", "20260910090000_class_invitations.sql", "20260912090000_invitation_student_names.sql", "20260912120000_class_student_removal.sql"]) {
     await db.exec(readFileSync(new URL(`../supabase/migrations/${file}`, import.meta.url), "utf8"));
   }
   await db.query(`insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) values
@@ -46,6 +46,52 @@ afterEach(async () => { await db.exec("rollback; reset role"); });
 afterAll(async () => { await db.close(); });
 
 describe("class invitation authorization and lifecycle", () => {
+  it("lets the class moderator remove a student without changing their account or other classes", async () => {
+    await prepare(); await asUser(student); await accept();
+    await asUser("", "service_role");
+    await db.query("select prepare_class_invitation($1,2,$2,$3)",[otherTeacher,"student@example.test",nextHash]);
+    await asUser(student); await accept(nextHash); await asUser(teacher);
+    expect((await db.query("select remove_class_student(1,$1) as removed",[student])).rows).toEqual([{removed:true}]);
+    expect((await db.query("select * from class_roster_named(1)")).rows).toEqual([]);
+    expect((await db.query("select accepted_at is not null and revoked_at is not null as removed from class_invitations")).rows).toEqual([{removed:true}]);
+    await asUser(student);
+    expect((await db.query("select class_id from class_memberships")).rows).toEqual([{class_id:2}]);
+    expect((await db.query("select name from classes")).rows).toEqual([{name:"Reading 2"}]);
+    expect((await db.query("select id from profiles")).rows).toEqual([{id:student}]);
+    expect((await db.query("select preview_class_invitation($1) as preview",[hash])).rows).toEqual([{preview:null}]);
+    await expect(accept()).rejects.toThrow("no longer available");
+  });
+  it("makes repeated removal safe and allows enrollment with a fresh invitation", async () => {
+    await prepare(); await asUser(student); await accept(); await asUser(teacher);
+    await db.query("select remove_class_student(1,$1)",[student]);
+    expect((await db.query("select remove_class_student(1,$1) as removed",[student])).rows).toEqual([{removed:false}]);
+    await asUser("", "service_role");
+    await db.exec("update class_invitations set last_attempt_at=now()-interval '2 minutes'");
+    await prepare("student@example.test",teacher,nextHash); await asUser(student);
+    expect((await accept(nextHash)).rows).toEqual([{class_id:1}]);
+  });
+  it("removes manually enrolled students and revokes any pending invitation", async () => {
+    await prepare(); await db.exec("reset role");
+    await db.query("insert into class_memberships(class_id,teacher_id,student_id) values (1,$1,$2)",[teacher,student]);
+    await asUser(teacher); await db.query("select remove_class_student(1,$1)",[student]);
+    await asUser(student); await expect(accept()).rejects.toThrow("no longer available");
+  });
+  it("revokes historical invitations even if the student has changed their email", async () => {
+    await prepare(); await asUser(student); await accept(); await db.exec("reset role");
+    await db.query("update auth.users set email='changed@example.test' where id=$1",[student]);
+    await asUser(teacher); await db.query("select remove_class_student(1,$1)",[student]);
+    expect((await db.query("select revoked_at is not null as revoked from class_invitations")).rows).toEqual([{revoked:true}]);
+  });
+  for (const [label,id,role] of [["other teachers",otherTeacher,"authenticated"],["students",student,"authenticated"],["anonymous callers","","anon"]]) {
+    it(`rejects removal by ${label}`, async () => {
+      await prepare(); await asUser(student); await accept(); await asUser(id,role);
+      await expect(db.query("select remove_class_student(1,$1)",[student])).rejects.toThrow(role === "anon" ? "permission denied" : "Class unavailable");
+    });
+  }
+  it("keeps direct browser membership deletes prohibited", async () => {
+    await asUser(teacher);
+    await expect(db.query("delete from class_memberships where class_id=1")).rejects.toThrow("permission denied");
+  });
   it("stores trimmed names and returns them only in the owning teacher's roster", async () => {
     await db.query("select prepare_named_class_invitation($1,1,$2,$3,$4,$5)",[teacher,"student@example.test",hash," Zoë "," O'Neil "]);
     await asUser(student); await accept(); await asUser(teacher);

@@ -10,6 +10,7 @@ export interface ClassInvitation {
 }
 
 export function invitationStatus(invite: ClassInvitation, now = Date.now()): string {
+  if (invite.accepted_at && invite.revoked_at) return "Removed from class";
   if (invite.accepted_at) return "Joined";
   if (invite.revoked_at) return "Revoked";
   if (Date.parse(invite.expires_at) <= now) return "Expired";

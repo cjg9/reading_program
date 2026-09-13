@@ -26,6 +26,10 @@ confirm their email; the confirmation returns to the same invitation. Existing
 students sign in. The student explicitly chooses **Join class**, then opens
 their dashboard. Invites expire after seven days; resending invalidates the old
 link. Revoking an invite does not remove a student who already joined.
+Use **Remove from class** in the student roster to remove an enrolled student,
+then confirm the selected student. Removal revokes existing invitations for that
+student in this class and deletes only that membership. Accepted invitation
+history displays **Removed from class**. A fresh invitation allows them to rejoin.
 
 ## Deploy in this order
 
@@ -38,6 +42,9 @@ link. Revoking an invite does not remove a student who already joined.
    named invitation table or updated email function. It retains the old roster
    RPC for compatibility while adding a named roster and service-only named send
    preparation RPC.
+   Apply `20260912120000_class_student_removal.sql` before deploying roster
+   removal controls. It adds an owner-only RPC; browser table delete grants remain
+   prohibited. No email function redeployment is needed for student removal.
 2. Verify `dotreading.com` in Resend. Create a sending-only API key restricted
    to that domain. Configure Supabase custom SMTP: `smtp.resend.com`, port
    `465`, user `resend`, password = the Resend API key, sender

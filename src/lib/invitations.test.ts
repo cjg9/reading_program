@@ -17,5 +17,6 @@ describe("invitation links", () => {
     expect(invitationStatus(invite)).toBe("Expired");
     expect(invitationStatus({...invite,revoked_at:"date"})).toBe("Revoked");
     expect(invitationStatus({...invite,accepted_at:"date"})).toBe("Joined");
+    expect(invitationStatus({...invite,accepted_at:"date",revoked_at:"date"})).toBe("Removed from class");
   });
 });

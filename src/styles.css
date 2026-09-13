@@ -939,3 +939,6 @@ blockquote cite {
 .invite-paste textarea[aria-invalid=true] { border-color: #a13c35; }
 .invite-paste .invite-batch-actions { margin-top: 12px; }
 .invite-paste .error-message:empty { display: none; }
+.student-removal { padding: 20px; margin: 16px 0; border: 1px solid var(--danger); border-radius: 12px; }
+.student-removal h3 { margin-top: 0; }
+.danger-button { color: var(--danger); }
