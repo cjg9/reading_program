@@ -98,13 +98,6 @@ button:disabled { cursor: wait; }
   fill: currentColor;
 }
 
-.brand-mark path:last-child {
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-width: 2;
-}
-
 .story-copy {
   position: relative;
   z-index: 1;

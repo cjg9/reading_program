@@ -1,6 +1,6 @@
-# Leafmark reading program
+# Dot Reading
 
-Leafmark is a React and TypeScript reading application for teachers and students.
+Dot Reading is a React and TypeScript reading application for teachers and students.
 It uses Supabase for authentication and class data, and it is configured for
 deployment through Vercel.
 
