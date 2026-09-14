@@ -50,7 +50,6 @@ it("disables repeated removal and invite sends while the request is pending", as
   let finish!: (value:unknown) => void;
   const remove = vi.fn().mockImplementation(() => new Promise(resolve => { finish = resolve; }));
   setup(remove);
-  fireEvent.click(screen.getByRole("button",{name:"Invite students"}));
   fireEvent.click(await screen.findByRole("button",{name:"Remove alex@example.test from class"}));
   fireEvent.click(screen.getByRole("button",{name:"Confirm removal"}));
   expect(screen.getByRole("button",{name:"Removing..."})).toHaveProperty("disabled",true);

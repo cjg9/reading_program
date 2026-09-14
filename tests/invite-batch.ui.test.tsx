@@ -10,6 +10,7 @@ it("imports a pasted spreadsheet for review without sending and keeps existing s
   fill(1,"existing@example.test");
   fireEvent.change(screen.getByLabelText("Paste a student list"),{target:{value:"First name\tLast name\tEmail\nAlex\tRivera\talex@example.test\nSam\tChen\tsam@example.test"}});
   fireEvent.click(screen.getByText("Add list to table"));
+  expect(screen.getByRole("button",{name:"Invitation table"}).getAttribute("aria-expanded")).toBe("true");
   expect(screen.getByLabelText("Email address 1")).toHaveProperty("value","existing@example.test");
   expect(screen.getByLabelText("First name 2")).toHaveProperty("value","Alex");
   expect(screen.getByLabelText("Last name 3")).toHaveProperty("value","Chen");

@@ -12,7 +12,6 @@ export function ClassPeople({ client, classId }: { client: SupabaseClient; class
   const [loadError, setLoadError] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [invitesOpen, setInvitesOpen] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [removeTarget, setRemoveTarget] = useState<Student | null>(null);
@@ -54,7 +53,6 @@ export function ClassPeople({ client, classId }: { client: SupabaseClient; class
     setBusy(true); setError(""); setNotice("");
     try {
       if (!invite.first_name || !invite.last_name) {
-        setInvitesOpen(true);
         throw new Error("To resend this older invitation, enter the student's first name, last name, and email under Invite students.");
       }
       await deliver({firstName:invite.first_name,lastName:invite.last_name,email:invite.email});
@@ -93,15 +91,10 @@ export function ClassPeople({ client, classId }: { client: SupabaseClient; class
   }
 
   return <div className="class-people">
-    <section className="people-panel invite-panel" aria-labelledby="invite-heading">
-      <h2 id="invite-heading"><button className="invite-toggle" type="button" aria-expanded={invitesOpen}
-        aria-controls="invite-controls" disabled={busy} onClick={() => setInvitesOpen(open => !open)}>
-        Invite students<span className="invite-chevron" aria-hidden="true">{invitesOpen ? "▴" : "▾"}</span>
-      </button></h2>
-      <div id="invite-controls" hidden={!invitesOpen}>
-        <p>Email a personal link to sign up and join this class. Students with an account can sign in with the same email.</p>
-        <InviteTable send={deliver} onComplete={load} onBusyChange={setBusy} disabled={busy || loading || Boolean(loadError)} />
-      </div>
+    <section className="people-panel" aria-labelledby="invite-heading">
+      <h2 id="invite-heading">Invite students</h2>
+      <p>Email a personal link to sign up and join this class. Students with an account can sign in with the same email.</p>
+      <InviteTable send={deliver} onComplete={load} onBusyChange={setBusy} disabled={busy || loading || Boolean(loadError)} />
       <div aria-live="polite">{error && <p className="error-message">{error}</p>}{notice && <p className="success-message">{notice}</p>}</div>
     </section>
     <section className="people-panel" aria-labelledby="students-heading">

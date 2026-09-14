@@ -15,6 +15,7 @@ export function InviteTable({ send, onComplete, onBusyChange, disabled }: Props)
   const blank = (): Entry => ({id:nextId.current++,firstName:"",lastName:"",email:"",status:"ready",error:""});
   const [rows, setRows] = useState<Entry[]>(() => [blank()]);
   const [busy, setBusy] = useState(false);
+  const [tableOpen, setTableOpen] = useState(false);
   const [notice, setNotice] = useState("");
   const [pasteText, setPasteText] = useState("");
   const [pasteError, setPasteError] = useState("");
@@ -32,6 +33,7 @@ export function InviteTable({ send, onComplete, onBusyChange, disabled }: Props)
       const combined: Entry[] = [...retained,...imported.map(recipient => ({...recipient,id:nextId.current++,status:"ready" as const,error:""}))];
       const errors = validateRecipients(combined);
       setRows(combined.map((row,index) => row.status === "sent" ? row : {...row,error:errors[index]}));
+      setTableOpen(true);
       setPasteText(""); setPasteError("");
       setNotice(`Added ${imported.length} student${imported.length === 1 ? "" : "s"}. Review the names and emails below${errors.some(Boolean) ? " and correct the highlighted rows" : ""}, then send the invitations.`);
     } catch (error) { setPasteText(text); setPasteError(error instanceof Error ? error.message : "We could not read this list."); }
@@ -48,10 +50,11 @@ export function InviteTable({ send, onComplete, onBusyChange, disabled }: Props)
     // Include sent rows in duplicate validation so a retry cannot resend them.
     const errors = validateRecipients(rows);
     if (errors.some((error,index) => error && rows[index].status !== "sent")) {
+      setTableOpen(true);
       setRows(current => current.map((row,index) => row.status === "sent" ? row : {...row,error:errors[index]}));
       setNotice("Check the highlighted rows before sending."); return;
     }
-    setBusy(true); onBusyChange(true); setNotice("Sending invitations. Keep this class open until the batch finishes.");
+    setTableOpen(true); setBusy(true); onBusyChange(true); setNotice("Sending invitations. Keep this class open until the batch finishes.");
     let sent = 0; let failed = 0;
     try {
       for (const [index, row] of pending.entries()) {
@@ -91,7 +94,11 @@ export function InviteTable({ send, onComplete, onBusyChange, disabled }: Props)
       <p className="people-help">Comma-separated lists also work. Review the first and last name split for full names. Adding a list keeps existing rows and does not send emails.</p>
       <p id="invite-paste-error" className="error-message" role="alert">{pasteError}</p>
     </div>
-    <div className="invite-table-scroll"><table className="invite-table">
+    <button className="invite-toggle" type="button" aria-expanded={tableOpen} aria-controls="invite-review-table"
+      disabled={busy} onClick={() => setTableOpen(open => !open)}>
+      Invitation table<span className="invite-chevron" aria-hidden="true">{tableOpen ? "▴" : "▾"}</span>
+    </button>
+    <div id="invite-review-table" hidden={!tableOpen}><div className="invite-table-scroll"><table className="invite-table">
       <caption>Review students — edit any field before sending</caption>
       <thead><tr><th scope="col">First name</th><th scope="col">Last name</th><th scope="col">Email address</th><th scope="col">Status</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
       <tbody>{rows.map((row,index) => <tr key={row.id}>
@@ -115,10 +122,10 @@ export function InviteTable({ send, onComplete, onBusyChange, disabled }: Props)
         <td><button className="text-button" type="button" aria-label={`Remove student ${index + 1}`} disabled={busy || disabled || rows.length === 1}
           onClick={() => { setRows(current => current.filter(item => item.id !== row.id)); setNotice(""); }}>Remove</button></td>
       </tr>)}</tbody>
-    </table></div>
+    </table></div></div>
     <div className="invite-batch-actions">
       <button className="secondary-button" type="button" disabled={busy || disabled || rows.length >= MAX_INVITE_ROWS}
-        onClick={() => { setRows(current => [...current,blank()]); setNotice(""); }}>Add student</button>
+        onClick={() => { setRows(current => [...current,blank()]); setTableOpen(true); setNotice(""); }}>Add student</button>
       {rows.some(row => row.status === "sent") && <button className="text-button" type="button" disabled={busy || disabled}
         onClick={() => { setRows(current => { const unsent = current.filter(row => row.status !== "sent"); return unsent.length ? unsent : [blank()]; }); setNotice(""); }}>Clear sent rows</button>}
       <button className="primary-button" disabled={busy || disabled || pending.length === 0} type="submit">
