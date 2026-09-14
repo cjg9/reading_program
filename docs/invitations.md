@@ -1,6 +1,9 @@
 # Class invitation setup and verification
 
 Teachers open a class and send a personal invitation to one student's email.
+The **Invite students** dropdown starts collapsed. Open it to enter or paste
+students; closing and reopening it preserves the draft while the class is open.
+It stays open while a batch is sending so progress remains visible.
 The invitation table collects first name, last name, and email for up to 30
 students at once. Add or remove rows, then send the batch with one button.
 Validation checks every row before sending, including duplicate emails. Each

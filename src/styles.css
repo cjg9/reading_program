@@ -888,6 +888,11 @@ blockquote cite {
 .class-people { margin-top: 2rem; display: grid; gap: 1.5rem; }
 .people-panel { background: #fffdf8; border: 1px solid #dedfd4; border-radius: 20px; padding: clamp(20px, 4vw, 32px); }
 .people-panel h2 { font-size: 1.6rem; margin: 0 0 12px; }
+.invite-panel h2 { margin: 0; }
+.invite-toggle { display: flex; justify-content: space-between; align-items: center; gap: 16px; width: 100%; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.invite-toggle:focus-visible { outline: 2px solid #2f614c; outline-offset: 6px; border-radius: 4px; }
+.invite-toggle:disabled { cursor: wait; }
+.invite-chevron { font-size: 1rem; }
 .people-panel h3 { margin-top: 2rem; }
 .people-panel p { line-height: 1.6; }
 .invite-form { display: flex; gap: 16px; align-items: flex-end; margin-top: 20px; }

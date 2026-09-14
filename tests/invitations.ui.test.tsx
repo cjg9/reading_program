@@ -85,9 +85,15 @@ it("teacher sends only the entered email and selected class, then shows delivery
   const client = {rpc:vi.fn().mockResolvedValue({data:[],error:null}),from:()=>query,functions:{invoke}} as unknown as SupabaseClient;
   render(<ClassPeople client={client} classId={42} />);
   await screen.findByText("No students have joined yet.");
+  expect(screen.getByRole("button",{name:"Invite students"}).getAttribute("aria-expanded")).toBe("false");
+  expect(screen.queryByRole("textbox",{name:"Paste a student list"})).toBeNull();
+  fireEvent.click(screen.getByRole("button",{name:"Invite students"}));
   fireEvent.change(screen.getByLabelText("First name 1"),{target:{value:"Sam"}});
   fireEvent.change(screen.getByLabelText("Last name 1"),{target:{value:"Reader"}});
   fireEvent.change(screen.getByLabelText("Email address 1"),{target:{value:"Student@Example.test"}});
+  fireEvent.click(screen.getByRole("button",{name:"Invite students"}));
+  fireEvent.click(screen.getByRole("button",{name:"Invite students"}));
+  expect(screen.getByLabelText("First name 1")).toHaveProperty("value","Sam");
   fireEvent.click(screen.getByRole("button",{name:"Send invitation"}));
   await waitFor(() => expect(invoke).toHaveBeenCalledWith("send-class-invitation",{body:{classId:42,email:"student@example.test",firstName:"Sam",lastName:"Reader"}}));
   expect(await screen.findByText(/1 invitation sent/)).toBeTruthy();
