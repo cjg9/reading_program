@@ -8,9 +8,10 @@ it("imports a pasted spreadsheet for review without sending and keeps existing s
   const send = vi.fn();
   render(<InviteTable send={send} onComplete={vi.fn()} onBusyChange={vi.fn()} disabled={false} />);
   fill(1,"existing@example.test");
+  fireEvent.click(screen.getByRole("button",{name:"Paste from Excel or Google Sheets"}));
   fireEvent.change(screen.getByLabelText("Paste a student list"),{target:{value:"First name\tLast name\tEmail\nAlex\tRivera\talex@example.test\nSam\tChen\tsam@example.test"}});
   fireEvent.click(screen.getByText("Add list to table"));
-  expect(screen.getByRole("button",{name:"Invitation table"}).getAttribute("aria-expanded")).toBe("true");
+  expect(screen.getByRole("table")).toBeTruthy();
   expect(screen.getByLabelText("Email address 1")).toHaveProperty("value","existing@example.test");
   expect(screen.getByLabelText("First name 2")).toHaveProperty("value","Alex");
   expect(screen.getByLabelText("Last name 3")).toHaveProperty("value","Chen");
@@ -27,6 +28,7 @@ it("keeps oversized paste text and all existing rows instead of truncating", () 
   render(<InviteTable send={vi.fn()} onComplete={vi.fn()} onBusyChange={vi.fn()} disabled={false} />);
   fill(1,"existing@example.test");
   const text=Array.from({length:30},(_,i)=>`First\tLast\tstudent${i}@example.test`).join("\n");
+  fireEvent.click(screen.getByRole("button",{name:"Paste from Excel or Google Sheets"}));
   fireEvent.change(screen.getByLabelText("Paste a student list"),{target:{value:text}});
   fireEvent.click(screen.getByText("Add list to table"));
   expect(screen.getByRole("alert").textContent).toContain("31 rows");
@@ -37,8 +39,11 @@ it("does not send existing rows while pasted students are awaiting review", () =
   const send=vi.fn();
   render(<InviteTable send={send} onComplete={vi.fn()} onBusyChange={vi.fn()} disabled={false} />);
   fill(1,"existing@example.test");
+  fireEvent.click(screen.getByRole("button",{name:"Paste from Excel or Google Sheets"}));
   fireEvent.change(screen.getByLabelText("Paste a student list"),{target:{value:"Alex Rivera alex@example.test"}});
+  fireEvent.click(screen.getByRole("button",{name:"Paste from Excel or Google Sheets"}));
   fireEvent.click(screen.getByText("Send invitation"));
+  expect(screen.getByRole("textbox",{name:"Paste a student list"})).toHaveProperty("value","Alex Rivera alex@example.test");
   expect(send).not.toHaveBeenCalled();
   expect(screen.getByRole("alert").textContent).toContain("before sending");
 });

@@ -1,10 +1,10 @@
 # Class invitation setup and verification
 
 Teachers open a class and send a personal invitation to one student's email.
-The invitation heading, paste field, and send controls remain visible. Only the
-**Invitation table** starts collapsed. Importing a list, adding a student, or
-validating rows opens it automatically. Closing and reopening preserves drafts
-while the class is open. It stays open during sending so progress remains visible.
+The student entry table and send controls remain visible. The **Paste from Excel
+or Google Sheets** dropdown below the list starts collapsed and contains the bulk
+paste field. Closing and reopening preserves pasted drafts while the class is
+open. Any paste error opens the dropdown so the teacher can correct it.
 The invitation table collects first name, last name, and email for up to 30
 students at once. Add or remove rows, then send the batch with one button.
 Validation checks every row before sending, including duplicate emails. Each
