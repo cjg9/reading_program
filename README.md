@@ -16,14 +16,17 @@ deployment through Vercel.
 - Human-readable access times that update while the menu is open
 - Teacher roster, named student invitations, bulk entry table, resend and revoke controls
 - Email-bound student signup/sign-in and atomic class enrollment
-- Placeholder reading workspaces ready for future reading features
+- Teacher exercise library, passage editor, game previews, and class assignments
+- Four Grade 6 nonfiction presets and ten configurable word-game styles
+- Student word solving with hints, saved progress, and teacher completion views
 - Row Level Security for account profiles, classes, and student memberships
 - Credential, class validation, sorting, and relative-time unit tests
 - Vercel SPA rewrites and production build settings
 
 See [invitation setup and verification](docs/invitations.md) for the Resend,
 Supabase SMTP, Edge Function, and callback settings needed to send invitations.
-Reading assignments and class event notifications are not included yet.
+See [reading exercises](docs/exercises.md) for the teacher and student flows,
+game rules, and database setup. Class event notifications are not included yet.
 
 ## Product rule: teachers are class moderators
 

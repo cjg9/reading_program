@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import { PGlite } from "@electric-sql/pglite";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import {buildChallenges} from "../src/lib/exercises";
+import {exercisePresets} from "../src/lib/exercise-presets";
 
 const db = new PGlite();
 const teacher = "10000000-0000-4000-8000-000000000001";
@@ -32,7 +34,7 @@ beforeAll(async () => {
       $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
     grant usage on schema auth,public to anon,authenticated,service_role;
   `);
-  for (const file of ["20260827231521_create_teacher_classes.sql", "20260828185336_add_student_accounts.sql", "20260910090000_class_invitations.sql", "20260912090000_invitation_student_names.sql", "20260912120000_class_student_removal.sql"]) {
+  for (const file of ["20260827231521_create_teacher_classes.sql", "20260828185336_add_student_accounts.sql", "20260910090000_class_invitations.sql", "20260912090000_invitation_student_names.sql", "20260912120000_class_student_removal.sql", "20260915090000_reading_exercises.sql", "20260915090100_reading_exercise_presets.sql"]) {
     await db.exec(readFileSync(new URL(`../supabase/migrations/${file}`, import.meta.url), "utf8"));
   }
   await db.query(`insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) values
@@ -44,6 +46,91 @@ beforeAll(async () => {
 beforeEach(async () => { await db.exec("begin"); await asUser("", "service_role"); });
 afterEach(async () => { await db.exec("rollback; reset role"); });
 afterAll(async () => { await db.close(); });
+
+async function exerciseFixture() {
+  await prepare();await asUser(student);await accept();await asUser(teacher);
+  const id=(await db.query<{id:string}>("select id from reading_exercises where preset_key='dogs-missing'")).rows[0].id;
+  const assignment=(await db.query<{id:string}>("select assign_reading_exercise(1,$1) as id",[id])).rows[0].id;
+  return {id,assignment};
+}
+const sourceContent=exercisePresets[0].content;
+const storedContent={...sourceContent,challenges:buildChallenges(sourceContent)};
+const solvedProgress={answers:Object.fromEntries(storedContent.challenges.map(c=>[String(c.index),c.word])),hints:[]};
+describe("exercise authorization and saved practice",()=>{
+  it("offers four immutable presets to teachers and supports private exercises",async()=>{
+    await asUser(teacher);
+    expect((await db.query("select id from reading_exercises")).rows).toHaveLength(4);
+    await db.query("select save_reading_exercise($1)",[storedContent]);
+    expect((await db.query("select id from reading_exercises")).rows).toHaveLength(5);
+    await asUser(otherTeacher);expect((await db.query("select id from reading_exercises")).rows).toHaveLength(4);
+    await asUser(student);expect((await db.query("select id from reading_exercises")).rows).toHaveLength(0);
+  });
+  it("rejects preset edits",async()=>{
+    const {id}=await exerciseFixture();
+    await expect(db.query("select save_reading_exercise($1,$2)",[storedContent,id])).rejects.toThrow("Exercise unavailable");
+  });
+  it("prevents students from creating exercises",async()=>{
+    await asUser(student);await expect(db.query("select save_reading_exercise($1)",[storedContent])).rejects.toThrow("Teacher account");
+  });
+  it("only lets class owners assign and keeps repeat assignment idempotent",async()=>{
+    const {id,assignment}=await exerciseFixture();
+    expect((await db.query("select assign_reading_exercise(1,$1) as id",[id])).rows).toEqual([{id:assignment}]);
+    await asUser(otherTeacher);await expect(db.query("select assign_reading_exercise(1,$1)",[id])).rejects.toThrow("Class unavailable");
+  });
+  it("keeps assignment snapshots when the teacher edits the library version",async()=>{
+    await asUser(teacher);
+    const id=(await db.query<{id:string}>("select save_reading_exercise($1) as id",[storedContent])).rows[0].id;
+    await db.query("select assign_reading_exercise(1,$1)",[id]);
+    await db.query("select save_reading_exercise($1,$2)",[{...storedContent,title:"Changed title"},id]);
+    expect((await db.query("select content->>'title' as title from exercise_assignments")).rows).toEqual([{title:storedContent.title}]);
+  });
+  it("saves answers/hints, persists completion, and shows it to the owning teacher",async()=>{
+    const {assignment}=await exerciseFixture();await asUser(student);
+    const progress={...solvedProgress,hints:[storedContent.challenges[0].index]};
+    await db.query("select save_exercise_progress($1,$2,true)",[assignment,progress]);
+    expect((await db.query("select progress,completed_at is not null as completed from exercise_progress")).rows).toEqual([{progress,completed:true}]);
+    await asUser(teacher);expect((await db.query("select student_id from exercise_progress")).rows).toEqual([{student_id:student}]);
+    await asUser(otherTeacher);expect((await db.query("select student_id from exercise_progress")).rows).toEqual([]);
+  });
+  it("rejects false completion with unsolved words",async()=>{
+    const {assignment}=await exerciseFixture();await asUser(student);
+    await expect(db.query("select save_exercise_progress($1,$2,true)",[assignment,{answers:{},hints:[]}])).rejects.toThrow("Solve every word");
+  });
+  it("rejects foreign answer indexes",async()=>{
+    const {assignment}=await exerciseFixture();await asUser(student);
+    await expect(db.query("select save_exercise_progress($1,$2)",[assignment,{answers:{999999:"cheat"},hints:[]}])).rejects.toThrow("Invalid answer");
+  });
+  it("blocks unenrolled students from reading assignments or writing progress",async()=>{
+    const {assignment}=await exerciseFixture();await asUser(otherStudent);
+    expect((await db.query("select id from exercise_assignments")).rows).toEqual([]);
+    await expect(db.query("select save_exercise_progress($1,$2)",[assignment,solvedProgress])).rejects.toThrow("no longer available");
+  });
+  it("revokes exercise and progress access when the teacher removes a student",async()=>{
+    const {assignment}=await exerciseFixture();await asUser(student);
+    await db.query("select save_exercise_progress($1,$2)",[assignment,solvedProgress]);
+    await asUser(teacher);await db.query("select remove_class_student(1,$1)",[student]);await asUser(student);
+    expect((await db.query("select id from exercise_assignments")).rows).toEqual([]);
+    expect((await db.query("select * from exercise_progress")).rows).toEqual([]);
+    await expect(db.query("select save_exercise_progress($1,$2)",[assignment,solvedProgress])).rejects.toThrow("no longer available");
+  });
+  it("unassigns without deleting saved work and creates a fresh assignment on reassignment",async()=>{
+    const {id,assignment}=await exerciseFixture();await asUser(student);
+    await db.query("select save_exercise_progress($1,$2)",[assignment,solvedProgress]);await asUser(teacher);
+    await db.query("select unassign_reading_exercise($1)",[assignment]);
+    expect((await db.query("select * from exercise_progress")).rows).toHaveLength(1);
+    const next=(await db.query<{id:string}>("select assign_reading_exercise(1,$1) as id",[id])).rows[0].id;
+    expect(next).not.toBe(assignment);await asUser(student);
+    expect((await db.query("select id from exercise_assignments")).rows).toEqual([{id:next}]);
+    expect((await db.query("select * from exercise_progress")).rows).toEqual([]);
+  });
+  it("does not let another teacher unassign a class exercise",async()=>{
+    const {assignment}=await exerciseFixture();await asUser(otherTeacher);
+    await expect(db.query("select unassign_reading_exercise($1)",[assignment])).rejects.toThrow("Assignment unavailable");
+  });
+  it("blocks direct student writes",async()=>{
+    await asUser(student);await expect(db.query("insert into exercise_progress(assignment_id,student_id) values(gen_random_uuid(),$1)",[student])).rejects.toThrow("permission denied");
+  });
+});
 
 describe("class invitation authorization and lifecycle", () => {
   it("lets the class moderator remove a student without changing their account or other classes", async () => {

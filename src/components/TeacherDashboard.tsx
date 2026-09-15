@@ -16,6 +16,7 @@ import {
 } from "../lib/classes";
 import { Brand } from "./Brand";
 import { ClassPeople } from "./ClassPeople";
+import { TeacherExercises } from "./TeacherExercises";
 
 interface TeacherDashboardProps {
   client: SupabaseClient;
@@ -284,11 +285,12 @@ export function TeacherDashboard({ client, user }: TeacherDashboardProps) {
             {selectedClass.name}
           </h1>
           <p>
-            Invite your students and keep track of who has joined.
+            Create reading exercises, assign them to your class, and support your students.
           </p>
           <time dateTime={selectedClass.last_accessed_at}>
             Last accessed: {formatRelativeTime(selectedClass.last_accessed_at, clock)}
           </time>
+          <TeacherExercises key={`exercises-${selectedClass.id}`} client={client} classId={selectedClass.id} />
           <ClassPeople key={selectedClass.id} client={client} classId={selectedClass.id} />
           {actionError && (
             <p className="error-message workspace-message" aria-live="polite">

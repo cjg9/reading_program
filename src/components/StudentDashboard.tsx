@@ -7,6 +7,7 @@ import {
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { formatRelativeTime } from "../lib/classes";
 import { Brand } from "./Brand";
+import { StudentExercises } from "./StudentExercises";
 
 interface StudentDashboardProps {
   client: SupabaseClient;
@@ -279,13 +280,13 @@ export function StudentDashboard({ client, user }: StudentDashboardProps) {
             {selectedClass.class.name}
           </h1>
           <p>
-            This is a preview of your class workspace. Reading assignments and
-            class activities can be added here in the next stage.
+            Explore your reading quests, solve the word puzzles, and pick up where you left off.
           </p>
           <time dateTime={selectedClass.last_accessed_at}>
             Last accessed:{" "}
             {formatRelativeTime(selectedClass.last_accessed_at, clock)}
           </time>
+          <StudentExercises key={selectedClass.class_id} client={client} classId={selectedClass.class_id} studentId={user.id} />
           {actionError && (
             <p className="error-message workspace-message" aria-live="polite">
               {actionError}
