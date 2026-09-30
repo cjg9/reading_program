@@ -1,0 +1,23 @@
+import {useState} from "react";
+import {Brand} from "./Brand";
+
+const features=[
+  ["Build a reading quest","Turn your own passage into a game with disappearing words, swapped letters, missing endings, and more."],
+  ["Follow saved progress","See completed exercises, words solved, and hints used by students in your class."],
+  ["Manage your classroom","Invite students by email, paste a class list, and manage membership in one place."],
+  ["Make words a discovery","Students restore altered words with help from context and optional hints."],
+  ["Start with a preset","Choose from four games built around a Grade 6 nonfiction passage about dogs."],
+  ["Pick up where you left off","Checked answers and hints are saved, so students can return to their reading later."],
+];
+export function WelcomePage(){
+  const [menu,setMenu]=useState(false);
+  return <main className="welcome-page teacher-theme"><header className="marketing-nav"><a href="/" aria-label="Dot Reading home"><Brand/></a><button className="mobile-menu-toggle secondary-button" aria-expanded={menu} aria-controls="marketing-links" onClick={()=>setMenu(x=>!x)}>Menu</button><nav id="marketing-links" className={menu?"is-open":""} aria-label="About Dot Reading"><a href="#features">Features</a><a href="#library">Reading Library</a><a href="#how-it-works">How It Works</a><a href="/student">Student Portal</a><a href="/teacher" className="secondary-link">Teacher Sign In</a></nav></header>
+    <section className="marketing-hero"><div><span className="marketing-badge">Interactive reading word quests</span><h1>Where reading <em>clicks</em> and classrooms thrive.</h1><p>Make reading more engaging. Create playful passage-based exercises, invite your students, and follow their progress from one classroom space.</p><div className="hero-actions"><a className="primary-link" href="/teacher?mode=sign-up">Create a Teacher Account</a><a className="secondary-link" href="#library">Explore Reading Library</a></div></div><picture><source media="(max-width:700px)" srcSet="/design/reading-hero-mobile.png"/><img src="/design/reading-hero.png" alt="Students reading together in a school library" width="616" height="450"/></picture></section>
+    <section className="marketing-stats" aria-label="What you can do"><div><strong>10</strong><span>Reading game styles</span></div><div><strong>4</strong><span>Ready-to-assign starter games</span></div><div><strong>Your class</strong><span>Personal email invitations</span></div><div><strong>Save & resume</strong><span>Checked answers and hints</span></div></section>
+    <section id="features" className="marketing-section"><header><span className="eyebrow">Make reading click</span><h2>A home for your reading classroom</h2></header><div className="feature-grid">{features.map(([title,body],i)=><article key={title}><span className="feature-icon"><img src={`/design/${i===2?'users':i===1?'dashboard':'exercise'}.svg`} alt=""/></span><h3>{title}</h3><p>{body}</p></article>)}</div></section>
+    <section id="how-it-works" className="marketing-section tinted"><header><span className="eyebrow">Step by step</span><h2>Start your first word quest</h2></header><div className="steps-grid">{[["Create Your Classroom","Choose a class name and send personal signup-and-join links to your students."],["Assign Interactive Reading","Choose a preset or paste your own passage. Preview the game before assigning it."],["Follow Their Progress","Students check words and use hints. See their progress and completion in your class."]].map(([title,body],i)=><article key={title}><strong className="step-number">0{i+1}</strong><h3>{title}</h3><p>{body}</p></article>)}</div></section>
+    <section id="library" className="marketing-section"><header><span className="eyebrow">Grade 6 · nonfiction</span><h2>Meet the Dog Detectives</h2><p>Four ways to explore one passage about dogs and their remarkable traits.</p></header><div className="feature-grid preset-grid">{["Disappearing Words","Twist & Swap","Missing Endings","Context Clues"].map(title=><article key={title}><h3>{title}</h3><p>A word quest with optional hints and saved progress.</p><a href="/teacher">Open teacher portal →</a></article>)}</div></section>
+    <section className="marketing-section tinted final-cta"><h2>Ready to make reading a discovery?</h2><div className="hero-actions"><a href="/teacher?mode=sign-up" className="primary-link">Create a Teacher Account</a><a href="/student" className="secondary-link">Student Sign In</a></div></section>
+    <footer className="marketing-footer"><Brand/><p>Reading games for curious minds and connected classrooms.</p><a href="/teacher">Teacher portal</a><a href="/student">Student portal</a></footer>
+  </main>;
+}

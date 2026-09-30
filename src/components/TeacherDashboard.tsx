@@ -15,8 +15,8 @@ import {
   type TeacherClass,
 } from "../lib/classes";
 import { Brand } from "./Brand";
-import { ClassPeople } from "./ClassPeople";
-import { TeacherExercises } from "./TeacherExercises";
+import { ClassWorkspace } from "./ClassWorkspace";
+import { summarizeReading, useReadingOverview } from "../lib/reading-overview";
 
 interface TeacherDashboardProps {
   client: SupabaseClient;
@@ -70,6 +70,7 @@ export function TeacherDashboard({ client, user }: TeacherDashboardProps) {
   const [actionError, setActionError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [className, setClassName] = useState("");
+  const [search, setSearch] = useState("");
   const [createError, setCreateError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [openingClassId, setOpeningClassId] = useState<number | null>(null);
@@ -245,14 +246,16 @@ export function TeacherDashboard({ client, user }: TeacherDashboardProps) {
     returningToMenu.current = true;
     setActionError(null);
     setSelectedClass(null);
+    overview.refresh();
   }
 
+  const overview = useReadingOverview(client,classes.map(c=>c.id));
   const firstLetter = user.email?.charAt(0).toUpperCase() ?? "T";
 
   return (
-    <main className="teacher-shell">
+    <main className="teacher-shell teacher-theme design-dashboard">
       <nav className="teacher-nav" aria-label="Teacher navigation">
-        <Brand />
+        <div className="nav-brand"><Brand /><span className="role-badge">Teacher portal</span></div>
         <div className="teacher-nav-actions">
           <div className="teacher-account" title={user.email ?? "Teacher account"}>
             <span className="teacher-avatar" aria-hidden="true">
@@ -271,6 +274,7 @@ export function TeacherDashboard({ client, user }: TeacherDashboardProps) {
         </div>
       </nav>
 
+      <aside className="app-sidebar" aria-label="Workspace navigation"><button className="is-active" onClick={handleBackToClasses}><img src="/design/classes.svg" alt=""/>My Classrooms</button><a href="/"><img src="/design/dashboard.svg" alt=""/>About Dot Reading</a><div className="sidebar-help"><strong>Make reading click</strong><p>Open a class to invite students and assign a word quest.</p></div></aside>
       {selectedClass ? (
         <section className="class-workspace" aria-labelledby="class-heading">
           <button
@@ -280,7 +284,7 @@ export function TeacherDashboard({ client, user }: TeacherDashboardProps) {
           >
             <span aria-hidden="true">&larr;</span> All classes
           </button>
-          <p className="eyebrow">Class workspace</p>
+
           <h1 ref={workspaceHeading} id="class-heading" tabIndex={-1}>
             {selectedClass.name}
           </h1>
@@ -290,8 +294,7 @@ export function TeacherDashboard({ client, user }: TeacherDashboardProps) {
           <time dateTime={selectedClass.last_accessed_at}>
             Last accessed: {formatRelativeTime(selectedClass.last_accessed_at, clock)}
           </time>
-          <TeacherExercises key={`exercises-${selectedClass.id}`} client={client} classId={selectedClass.id} />
-          <ClassPeople key={selectedClass.id} client={client} classId={selectedClass.id} />
+          <ClassWorkspace key={selectedClass.id} client={client} classId={selectedClass.id} />
           {actionError && (
             <p className="error-message workspace-message" aria-live="polite">
               {actionError}
@@ -302,19 +305,16 @@ export function TeacherDashboard({ client, user }: TeacherDashboardProps) {
         <section className="class-menu" aria-labelledby="classes-heading">
           <header className="class-menu-heading">
             <div>
-              <p className="eyebrow">Teacher dashboard</p>
+
               <h1 ref={menuHeading} id="classes-heading" tabIndex={-1}>
-                Your classes
+                My Classrooms
               </h1>
-              <p>Choose a class to continue, or create a new space for readers.</p>
+              <p>Manage your reading classes, students, and word quests.</p>
             </div>
-            {!loadingClasses && !loadError && classes.length > 0 && (
-              <span className="class-count">
-                {classes.length} {classes.length === 1 ? "class" : "classes"}
-              </span>
-            )}
+            <button ref={createTile} className="primary-button create-class-button" onClick={openCreateDialog} disabled={openingClassId !== null}><img src="/design/plus.svg" alt=""/>Create New Class</button>
           </header>
 
+          {!loadingClasses && !loadError && <><div className="metric-grid dashboard-metrics"><article><span>Active classrooms</span><strong>{classes.length}</strong><small>Your reading spaces</small></article><article><span>Enrolled students</span><strong>{overview.loading || overview.error ? "—" : overview.summary.students}</strong><small>Across your classrooms</small></article><article><span>Completed activities</span><strong>{overview.loading || overview.error ? "—" : overview.summary.completed}</strong><small>On active exercises</small></article></div>{overview.error && <p role="alert">{overview.error} <button className="text-button" onClick={overview.refresh}>Retry statistics</button></p>}<label className="search-field"><img src="/design/search.svg" alt=""/><span className="sr-only">Find a class</span><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Find a classroom..."/></label></>}
           <div className="menu-message" aria-live="polite" aria-atomic="true">
             {actionError && <p className="error-message">{actionError}</p>}
             {notice && <p className="success-message">{notice}</p>}
@@ -340,8 +340,9 @@ export function TeacherDashboard({ client, user }: TeacherDashboardProps) {
                   You do not have any classes yet. Create your first one below.
                 </p>
               )}
+              {classes.length>0 && !classes.some(c=>c.name.toLowerCase().includes(search.toLowerCase())) && <p>No classrooms match your search.</p>}
               <ul className="class-grid" aria-label="Teacher classes">
-                {classes.map((teacherClass) => (
+                {classes.filter(c=>c.name.toLowerCase().includes(search.toLowerCase())).map((teacherClass) => (
                   <li key={teacherClass.id}>
                     <button
                       className="class-tile existing-class-tile"
@@ -349,11 +350,9 @@ export function TeacherDashboard({ client, user }: TeacherDashboardProps) {
                       onClick={() => void handleOpenClass(teacherClass)}
                       disabled={openingClassId !== null}
                     >
-                      <span className="class-tile-topline">
-                        <span className="class-bookmark" aria-hidden="true" />
-                        <span aria-hidden="true">&rarr;</span>
-                      </span>
+                      <span className="class-tile-topline"><span className="status-badge">Active</span><img src="/design/chevron-right.svg" alt=""/></span>
                       <span className="class-tile-name">{teacherClass.name}</span>
+                      {!overview.loading && !overview.error && <span className="class-metrics"><span><img src="/design/users.svg" alt=""/>{overview.members.filter(m=>m.class_id===teacherClass.id).length} students</span><span>Exercise completion <strong>{summarizeReading(overview.members.filter(m=>m.class_id===teacherClass.id),overview.assignments.filter(a=>a.class_id===teacherClass.id),overview.progress).rate}%</strong></span><progress aria-label={`${teacherClass.name} exercise completion`} value={summarizeReading(overview.members.filter(m=>m.class_id===teacherClass.id),overview.assignments.filter(a=>a.class_id===teacherClass.id),overview.progress).rate} max={100}/></span>}
                       <time
                         className="class-tile-detail"
                         dateTime={teacherClass.last_accessed_at}
@@ -368,7 +367,6 @@ export function TeacherDashboard({ client, user }: TeacherDashboardProps) {
                 ))}
                 <li>
                   <button
-                    ref={createTile}
                     className="class-tile create-class-tile"
                     type="button"
                     onClick={openCreateDialog}

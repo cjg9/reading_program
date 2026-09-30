@@ -17,8 +17,8 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 it.each([
-  ["student", "/", "Open teacher sign in", "/teacher"],
-  ["teacher", "/teacher", "Open student sign in", "/"],
+  ["student", "/student", "Open teacher sign in", "/teacher"],
+  ["teacher", "/teacher", "Open student sign in", "/student"],
 ] as const)("returns %s signup confirmations to %s and links to the alternate portal", async (portal, path, alternateLabel, alternatePath) => {
   const signUp = vi.fn().mockResolvedValue({data:{session:null},error:null});
   render(<AuthForm client={{auth:{signUp}} as unknown as SupabaseClient} portal={portal} />);
@@ -58,7 +58,7 @@ it("requires an explicit Join action, then removes the token and offers the dash
   const join = await screen.findByRole("button",{name:"Join class"});
   expect(rpc.mock.calls.some(([name]) => name === "accept_class_invitation")).toBe(false);
   fireEvent.click(join);
-  expect((await screen.findByRole("link",{name:"Open my classes"})).getAttribute("href")).toBe("/");
+  expect((await screen.findByRole("link",{name:"Open my classes"})).getAttribute("href")).toBe("/student");
   expect(window.location.search).toBe("");
 });
 

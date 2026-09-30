@@ -4,7 +4,8 @@ import { buildChallenges, exerciseChallenges, completedChallenges, strategies, v
 import { ExercisePlayer } from "./ExercisePlayer";
 
 const blank=():ExerciseContent=>({title:"",passage:"",strategy:"missing",mode:"type",targetWords:[],vocabulary:{}});
-export function TeacherExercises({client,classId}:{client:SupabaseClient;classId:number}) {
+export function TeacherExercises({client,classId,active=true}:{client:SupabaseClient;classId:number;active?:boolean}) {
+  const [filter,setFilter]=useState("");
   const [library,setLibrary]=useState<Exercise[]>([]);
   const [assigned,setAssigned]=useState<Assignment[]>([]);
   const [progress,setProgress]=useState<ProgressRecord[]>([]);
@@ -36,7 +37,7 @@ export function TeacherExercises({client,classId}:{client:SupabaseClient;classId
       setLibrary(l.data??[]);setAssigned(assignments);setRoster(r.data??[]);setProgress(p.data??[]);
     }catch{setError("We could not load exercises. Please refresh and try again.");}finally{setLoading(false);}
   },[client,classId]);
-  useEffect(()=>{void load();},[load]);
+  useEffect(()=>{if(active)void load();},[load,active]);
   function openEditor(exercise?:Exercise) {
     const content=exercise?structuredClone(exercise.content):blank();
     delete content.challenges;
@@ -102,11 +103,12 @@ export function TeacherExercises({client,classId}:{client:SupabaseClient;classId
           <button className="primary-button" disabled={busy} onClick={()=>void assign(exercise)}>Assign to class</button>
           <button className="text-button" disabled={busy} onClick={()=>{setEditor(null);setPreview(exercise.content);}}>Preview</button>
           <button className="text-button" disabled={busy} onClick={()=>openEditor(exercise)}>{exercise.preset_key?"Customize":"Edit"}</button></div></article>)}</div></div>}
+    {!loading&&assigned.length>0&&!assigned.some(a=>a.content.title.toLowerCase().includes(filter.toLowerCase()))&&<p>No exercises match your search.</p>}
     {preview&&<div className="exercise-preview"><button className="text-button" onClick={()=>setPreview(null)}>Close preview</button><ExercisePlayer key={JSON.stringify(preview)} content={preview} preview/></div>}
-    <h3>Assigned to this class</h3>{loading?<p role="status">Loading exercises...</p>:assigned.length===0?<p>No exercises assigned yet. Choose a preset from the exercise library or create your own.</p>:
-      <div className="exercise-grid">{assigned.map(a=>{
+    <h3>Assigned to this class</h3><label className="search-field"><img src="/design/search.svg" alt=""/><span className="sr-only">Filter exercises</span><input value={filter} onChange={e=>setFilter(e.target.value)} placeholder="Filter exercises..."/></label>{loading?<p role="status">Loading exercises...</p>:assigned.length===0?<p>No exercises assigned yet. Choose a preset from the exercise library or create your own.</p>:
+      <div className="exercise-grid assigned-exercises">{assigned.filter(a=>a.content.title.toLowerCase().includes(filter.toLowerCase())).map(a=>{
         const records=progress.filter(p=>p.assignment_id===a.id&&roster.some(s=>s.student_id===p.student_id));
-        return <article className="exercise-card" key={a.id}><h4>{a.content.title}</h4><p>{strategies[a.content.strategy].name}</p>
+        return <article className="exercise-card assigned-exercise" key={a.id}><img className="exercise-type-icon" src="/design/exercise.svg" alt=""/><h4>{a.content.title}</h4><p>{strategies[a.content.strategy].name}</p>
           <p>{records.filter(p=>p.completed_at).length} of {roster.length} students finished</p><div className="exercise-actions">
             <button className="secondary-button" onClick={()=>setResults(results===a.id?null:a.id)}>Student progress</button>
             <button className="text-button" onClick={()=>setPreview(a.content)}>Preview</button>

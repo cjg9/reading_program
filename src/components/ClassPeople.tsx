@@ -6,7 +6,8 @@ import type { InviteRecipient } from "../lib/invite-batch";
 
 interface Student { student_id: string; email: string; joined_at: string; first_name: string | null; last_name: string | null }
 
-export function ClassPeople({ client, classId }: { client: SupabaseClient; classId: number }) {
+export function ClassPeople({ client, classId, active = true }: { client: SupabaseClient; classId: number; active?: boolean }) {
+  const [search,setSearch]=useState("");
   const [students, setStudents] = useState<Student[]>([]);
   const [invitations, setInvitations] = useState<ClassInvitation[]>([]);
   const [loadError, setLoadError] = useState("");
@@ -37,7 +38,7 @@ export function ClassPeople({ client, classId }: { client: SupabaseClient; class
       setLoadError(caught instanceof Error ? caught.message : "We could not load this class. Please try again.");
     } finally { setLoading(false); }
   }, [client, classId]);
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { if (active) void load(); }, [load, active]);
 
   async function deliver(recipient: InviteRecipient) {
     const { error: sendError } = await client.functions.invoke("send-class-invitation", {body:{classId,...recipient}});
@@ -91,16 +92,17 @@ export function ClassPeople({ client, classId }: { client: SupabaseClient; class
   }
 
   return <div className="class-people">
-    <section className="people-panel" aria-labelledby="invite-heading">
+    <section className="people-panel invitation-panel" aria-labelledby="invite-heading">
       <h2 id="invite-heading">Invite students</h2>
       <p>Email a personal link to sign up and join this class. Students with an account can sign in with the same email.</p>
       <InviteTable send={deliver} onComplete={load} onBusyChange={setBusy} disabled={busy || loading || Boolean(loadError)} />
       <div aria-live="polite">{error && <p className="error-message">{error}</p>}{notice && <p className="success-message">{notice}</p>}</div>
     </section>
-    <section className="people-panel" aria-labelledby="students-heading">
+    <section className="people-panel roster-panel" aria-labelledby="students-heading">
       <div className="people-heading"><h2 id="students-heading">Students ({students.length})</h2>
         <button className="text-button" disabled={loading || busy} onClick={() => { setError(""); void load(); }}>Refresh</button></div>
       <p className="people-help">As the class moderator, you can remove students from this class. They can rejoin if you send a new invitation.</p>
+      <label className="search-field"><img src="/design/search.svg" alt=""/><span className="sr-only">Search students</span><input placeholder="Search by student name or email..." value={search} onChange={e=>setSearch(e.target.value)}/></label>
       {removeNotice && <p className="success-message" role="status">{removeNotice}</p>}
       {removeTarget && <div className="student-removal" role="group" aria-labelledby="remove-student-heading">
         <h3 id="remove-student-heading" ref={removeHeading} tabIndex={-1}>Remove {removeTarget.first_name ? `${removeTarget.first_name} ${removeTarget.last_name ?? ""}`.trim() : removeTarget.email}?</h3>
@@ -112,10 +114,11 @@ export function ClassPeople({ client, classId }: { client: SupabaseClient; class
         {removeError && <p className="error-message" role="alert">{removeError}</p>}
       </div>}
       {loading ? <p role="status">Loading class people...</p> : loadError ? <p className="error-message" role="alert">{loadError}</p> : <>
-        {students.length === 0 ? <p>No students have joined yet.</p> : <ul className="people-list">{students.map(student =>
+        {students.length === 0 ? <p>No students have joined yet.</p> : <ul className="people-list">{students.filter(s=>`${s.first_name??""} ${s.last_name??""} ${s.email}`.toLowerCase().includes(search.toLowerCase())).map(student =>
           <li key={student.student_id}><div>{student.first_name && <strong>{student.first_name} {student.last_name}</strong>}<span className="people-email">{student.email}</span><span className="people-status">Joined {new Date(student.joined_at).toLocaleDateString()}</span></div>
             <button className="text-button danger-button" disabled={busy} aria-label={`Remove ${student.email} from class`}
               onClick={() => { setRemoveTarget(student); setRemoveError(""); setRemoveNotice(""); }}>Remove from class</button></li>)}</ul>}
+        {students.length>0 && !students.some(s=>`${s.first_name??""} ${s.last_name??""} ${s.email}`.toLowerCase().includes(search.toLowerCase())) && <p>No students match your search.</p>}
         <h3>Invitations</h3>
         <p className="people-help">Resending replaces the previous link. You can resend once per minute, up to 30 invitations per hour.</p>
         {invitations.length === 0 ? <p>No invitations yet.</p> : <ul className="people-list">{invitations.map(invite =>

@@ -3,7 +3,7 @@ import { isAccountType, resolvePortal } from "./portal";
 
 describe("resolvePortal", () => {
   it.each([
-    ["/", "student"],
+    ["/", null],
     ["/teacher", "teacher"],
     ["/teacher/", "teacher"],
     ["/student", "student"],

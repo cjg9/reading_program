@@ -5,6 +5,7 @@ import { AuthForm } from "./components/AuthForm";
 import { Brand } from "./components/Brand";
 import { StudentDashboard } from "./components/StudentDashboard";
 import { TeacherDashboard } from "./components/TeacherDashboard";
+import { WelcomePage } from "./components/WelcomePage";
 import { InvitationPage } from "./components/InvitationPage";
 import {
   portalPath,
@@ -176,42 +177,11 @@ function AuthStory({
 }) {
   const isStudent = portal === "student";
 
-  return (
-    <main className="auth-layout">
-      <section className="story-panel" aria-labelledby="story-heading">
-        <Brand />
-        <div className="story-copy">
-          <p className="eyebrow light">
-            {isStudent
-              ? "One account for every reading class"
-              : "A home for every reading community"}
-          </p>
-          <h2 id="story-heading">
-            {isStudent
-              ? "Keep your reading communities close."
-              : "Give every class room to grow as readers."}
-          </h2>
-          <p>
-            {isStudent
-              ? "See each class you join, return to recent reading spaces, and stay ready for what your teachers share."
-              : "Create welcoming class spaces, support thoughtful reading, and keep each group organized in one calm place."}
-          </p>
-        </div>
-        <blockquote>
-          &ldquo;Reading is an exercise in empathy; an exercise in walking in
-          someone else&apos;s shoes for a while.&rdquo;
-          <cite>&mdash; Malorie Blackman</cite>
-        </blockquote>
-      </section>
-
-      <section className="form-panel">
-        <div className="mobile-brand">
-          <Brand />
-        </div>
-        <AuthForm client={client} portal={portal} />
-      </section>
-    </main>
-  );
+  return <main className={`portal-login ${isStudent?"student-theme":"teacher-theme"}`}>
+    {isStudent?<div className="login-decor" aria-hidden="true"><img src="/design/student-blob-one.svg" alt=""/><img src="/design/student-blob-two.svg" alt=""/></div>:<div className="teacher-lines" aria-hidden="true">{Array.from({length:15},(_,i)=><img key={i} src="/design/teacher-lines.svg" alt=""/>)}</div>}
+    <AuthForm client={client} portal={portal}/>
+    <a className="about-link" href="/">About Dot Reading</a>
+  </main>;
 }
 
 function AppContent() {
@@ -224,6 +194,8 @@ function AppContent() {
     session,
   } = useAuth();
   const portal = resolvePortal(window.location.pathname);
+  const path = window.location.pathname.replace(/\/+$/, "") || "/";
+  if (path === "/" || path === "/welcome") return <WelcomePage/>;
   const isInvitation = window.location.pathname.replace(/\/+$/, "") === "/student/invite";
 
   if (!portal && !isInvitation) {

@@ -245,9 +245,9 @@ export function StudentDashboard({ client, user }: StudentDashboardProps) {
   const firstLetter = user.email?.charAt(0).toUpperCase() ?? "S";
 
   return (
-    <main className="teacher-shell">
+    <main className="teacher-shell student-theme">
       <nav className="teacher-nav" aria-label="Student navigation">
-        <Brand />
+        <div className="nav-brand"><Brand /><span className="role-badge">Student portal</span></div>
         <div className="teacher-nav-actions">
           <div className="teacher-account" title={user.email ?? "Student account"}>
             <span className="teacher-avatar" aria-hidden="true">

@@ -2,7 +2,7 @@ export type AccountType = "teacher" | "student";
 
 export const portalPath: Record<AccountType, string> = {
   teacher: "/teacher",
-  student: "/",
+  student: "/student",
 };
 
 export function isAccountType(value: unknown): value is AccountType {
@@ -20,8 +20,7 @@ export function resolvePortal(pathname: string): AccountType | null {
     return "teacher";
   }
 
-  // Keep old student bookmarks and email callbacks working.
-  if (normalizedPath === portalPath.student || normalizedPath === "/student") {
+  if (normalizedPath === portalPath.student) {
     return "student";
   }
 

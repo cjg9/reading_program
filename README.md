@@ -7,7 +7,7 @@ deployment through Vercel.
 ## What is included
 
 - Teacher email/password sign-up, sign-in, session restoration, and sign-out
-- Student sign-up and sign-in at `/`, with a separate teacher portal at `/teacher`
+- Public homepage at `/`, student sign-up/sign-in at `/student`, and teacher portal at `/teacher`
 - Protected teacher/student account profiles with role-aware routing
 - A teacher class menu with responsive class tiles
 - Class creation and persistent last-accessed ordering
@@ -19,6 +19,7 @@ deployment through Vercel.
 - Teacher exercise library, passage editor, game previews, and class assignments
 - Four Grade 6 nonfiction presets and ten configurable word-game styles
 - Student word solving with hints, saved progress, and teacher completion views
+- Figma-based purple/teal styling, class tabs, search, and actual exercise completion statistics
 - Row Level Security for account profiles, classes, and student memberships
 - Credential, class validation, sorting, and relative-time unit tests
 - Vercel SPA rewrites and production build settings
@@ -35,6 +36,23 @@ They manage invitations and membership, including removing students. Enforce
 moderation permissions on the server and keep actions scoped to the owned class.
 Removing a student revokes their old class invitations and membership, while
 preserving their account and other classes. A teacher can invite them again.
+
+## Design workflow: Figma
+
+Use the owner's [Dot Reading Figma file](https://www.figma.com/design/tfTA46pQ1s1YHtvB10qrkg/Dot-Reading?node-id=0-1)
+as the UI/UX design reference. See [design mapping and sync status](docs/design-workflow.md)
+for frame IDs, implementation decisions, and remaining Figma work.
+
+For future UI changes, update the affected Figma designs and React screens in
+the same task, then compare the rendered application with the designs. Keep
+working authentication, class moderation, invitations, exercises, and saved
+progress intact unless a requested behavior change says otherwise. Use sample
+student data in design files. Report any access limitation or mismatch that
+prevents updating both sides.
+
+Figma updates are part of the development workflow, not an automatic background
+sync or deployment trigger. The application continues to deploy through Vercel
+and use Supabase for authentication and data.
 
 ## Prerequisites
 
@@ -118,14 +136,14 @@ npm.cmd install
 npm.cmd run dev
 ```
 
-Open `http://localhost:5173` for students or
-`http://localhost:5173/teacher` for teachers. The old `/student` path remains a
-student alias so existing bookmarks and callbacks work. Sign in as a teacher, create a
+Open `http://localhost:5173` for the public homepage,
+`http://localhost:5173/student` for students, or
+`http://localhost:5173/teacher` for teachers. Sign in as a teacher, create a
 class, open it, return to the menu, and refresh the page to verify persistence.
 
 For local administrator-only provisioning without sending an email:
 
-1. Create and confirm a student account at `/`.
+1. Create and confirm a student account at `/student`.
 2. Create a class from the teacher dashboard and note its numeric `id` in the
    Supabase Table Editor.
 3. Run this in the Supabase SQL Editor after replacing both example values:

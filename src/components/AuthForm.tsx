@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { portalPath, type AccountType } from "../lib/portal";
 import { validateCredentials, type AuthMode } from "../lib/validation";
+import { Brand } from "./Brand";
 import { inviteRedirect } from "../lib/invitations";
 
 interface AuthFormProps {
@@ -66,7 +67,7 @@ function getFriendlyError(message: string): string {
 }
 
 export function AuthForm({ client, portal, invitation }: AuthFormProps) {
-  const [mode, setMode] = useState<AuthMode>(invitation ? "sign-up" : "sign-in");
+  const [mode, setMode] = useState<AuthMode>(invitation || new URLSearchParams(window.location.search).get("mode") === "sign-up" ? "sign-up" : "sign-in");
   const [email, setEmail] = useState(invitation?.email ?? "");
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
@@ -157,14 +158,14 @@ export function AuthForm({ client, portal, invitation }: AuthFormProps) {
   }
 
   return (
-    <section className="auth-card" aria-labelledby="auth-heading">
+    <section className={`auth-card ${portal}-theme`} aria-labelledby="auth-heading">
       <div className="auth-card-header">
-        <p className="eyebrow">{copy.eyebrow}</p>
-        <h1 id="auth-heading">
+        <Brand /><p className="eyebrow">{copy.eyebrow}</p>
+        <h1 id="auth-heading" className={isSignUp ? "" : "sr-only"}>
           {isSignUp ? copy.createHeading : copy.signInHeading}
         </h1>
         <p className="auth-intro">
-          {isSignUp ? copy.createIntro : copy.signInIntro}
+          {isSignUp ? copy.createIntro : portal === "teacher" ? "Teacher Administration Portal" : "Welcome back, reader."}
         </p>
       </div>
 
@@ -190,7 +191,7 @@ export function AuthForm({ client, portal, invitation }: AuthFormProps) {
       <form onSubmit={handleSubmit} noValidate>
         <div className="field">
           <label htmlFor="email">Email address</label>
-          <input
+          <div className="icon-input"><img src="/design/mail.svg" alt=""/><input
             id="email"
             name="email"
             type="email"
@@ -202,12 +203,12 @@ export function AuthForm({ client, portal, invitation }: AuthFormProps) {
             onChange={(event) => setEmail(event.target.value)}
             disabled={busy}
             required
-          />
+          /></div>
         </div>
 
         <div className="field">
           <label htmlFor="password">Password</label>
-          <div className="password-field">
+          <div className="password-field icon-input"><img src="/design/lock.svg" alt=""/>
             <input
               id="password"
               name="password"
@@ -262,14 +263,11 @@ export function AuthForm({ client, portal, invitation }: AuthFormProps) {
               : "Signing in..."
             : isSignUp
               ? copy.createButton
-              : "Sign in"}
+              : `Sign in as ${portal === "teacher" ? "Teacher" : "Student"}`}
         </button>
       </form>
 
-      <p className="privacy-note">
-        {copy.privacyLabel} authentication is securely managed by Supabase. This app never
-        stores plaintext passwords.
-      </p>
+      {portal === "student" && !invitation && <p className="privacy-note">Joining a new class? Open the invitation link in your email.</p>}
       {!invitation && <p className="portal-switch">
         {copy.alternatePrompt}{" "}
         <a href={copy.alternatePath}>{copy.alternateLabel}</a>
