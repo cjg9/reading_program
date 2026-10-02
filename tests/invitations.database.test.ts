@@ -3,6 +3,8 @@ import { PGlite } from "@electric-sql/pglite";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {buildChallenges} from "../src/lib/exercises";
 import {exercisePresets} from "../src/lib/exercise-presets";
+import {loadTeacherMemberships,summarizeReading} from "../src/lib/reading-overview";
+import type {SupabaseClient} from "@supabase/supabase-js";
 
 const db = new PGlite();
 const teacher = "10000000-0000-4000-8000-000000000001";
@@ -46,6 +48,24 @@ beforeAll(async () => {
 beforeEach(async () => { await db.exec("begin"); await asUser("", "service_role"); });
 afterEach(async () => { await db.exec("rollback; reset role"); });
 afterAll(async () => { await db.close(); });
+
+it("counts two enrolled students through the authorized roster when direct teacher reads return no rows",async()=>{
+  await prepare();
+  await prepare("other@example.test",teacher,nextHash);
+  await asUser(student);await accept();
+  await asUser(otherStudent);await accept(nextHash);
+  await asUser(teacher);
+  expect((await db.query("select class_id,student_id from class_memberships where class_id=1")).rows).toEqual([]);
+  const client={rpc:async(name:string,args:{p_class_id:number})=>{
+    expect(name).toBe("class_roster_named");
+    const result=await db.query("select * from class_roster_named($1)",[args.p_class_id]);
+    return {data:result.rows,error:null};
+  }} as unknown as SupabaseClient;
+  const members=await loadTeacherMemberships(client,[1]);
+  expect(summarizeReading(members,[],[]).students).toBe(2);
+  await asUser(otherTeacher);
+  await expect(loadTeacherMemberships(client,[1])).rejects.toThrow("Class unavailable");
+});
 
 async function exerciseFixture() {
   await prepare();await asUser(student);await accept();await asUser(teacher);

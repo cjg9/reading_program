@@ -33,6 +33,10 @@ class codes, Lexile scores, grades, and unsupported analytics are omitted.
 Students and teachers use the existing email/password account flow.
 
 Statistics count current memberships and active assignments. Each student's
+membership is loaded through the ownership-checked `class_roster_named` function,
+the same source as the teacher roster. Direct `class_memberships` reads are
+student-only and silently return no rows for teachers under row-level security.
+Each student's
 completion of an assigned exercise is one completed activity; one exercise given
 to three current members represents three expected activities. Removed students'
 work and archived assignments do not contribute. Students enrolled in multiple
