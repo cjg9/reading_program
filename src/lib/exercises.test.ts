@@ -1,7 +1,34 @@
 import {describe,expect,it} from "vitest";
-import {buildChallenges,exerciseChallenges,completedChallenges,correctAnswer,splitPassage,validateExercise,type Strategy} from "./exercises";
+import {buildChallenges,exerciseChallenges,completedChallenges,correctAnswer,splitPassage,validateExercise,passageLibrary,passageSentences,parseSentenceNumbers,type Strategy} from "./exercises";
 import {exercisePresets,dogPassage} from "./exercise-presets";
 describe("reading games",()=>{
+  it("groups presets and customized copies under their unchanged original passage",()=>{
+    const originals=exercisePresets.map((p,i)=>({id:String(i),teacher_id:null,preset_key:p.key,content:p.content}));
+    const copy={id:"copy",teacher_id:"teacher",preset_key:null,content:{...originals[0].content,title:"My version",passage:"Changed passage",sourcePassage:dogPassage,sourceTitle:"Dog Detectives"}};
+    const library=passageLibrary([...originals,copy]);
+    expect(library).toHaveLength(1);
+    expect(library[0].content.passage).toBe(dogPassage);
+    expect(library[0].content.title).toBe("Dog Detectives");
+  });
+  it("prioritizes vocabulary beyond the first forty automatically sampled words",()=>{
+    const c={...exercisePresets[0].content,targetWords:[],passage:"Ordinary reading words fill this sentence. ".repeat(60)+"Attentive readers notice chaos."};
+    const challenges=buildChallenges(c);
+    expect(challenges).toHaveLength(40);
+    expect(challenges.map(c=>c.word)).toContain("attentive");
+    expect(challenges.map(c=>c.word)).toContain("chaos");
+  });
+  it("parses sentence ranges and preserves token indexes when selecting upside-down sentences",()=>{
+    const passage='Dr. Smith enjoys reading. "Dogs are attentive!"\n\nThey bring chaos. We keep watching.';
+    const sentences=passageSentences(passage);
+    expect(sentences).toHaveLength(4);
+    expect(sentences.flatMap(s=>s.tokens.map(t=>t.text)).join("")).toBe(passage);
+    expect(parseSentenceNumbers("2, 3–4",4)).toEqual([2,3,4]);
+    for(const invalid of ["0","4-2","1-5","no","1,"])expect(parseSentenceNumbers(invalid,4)).toBeNull();
+    const c={...exercisePresets[0].content,passage,strategy:"upside" as const,targetWords:[],sentenceNumbers:[2,3]};
+    const allowed=sentences.filter(s=>[2,3].includes(s.number)).flatMap(s=>s.tokens.map(t=>t.index));
+    expect(buildChallenges(c).length).toBeGreaterThan(0);
+    expect(buildChallenges(c).every(ch=>allowed.includes(ch.index)&&correctAnswer(splitPassage(passage)[ch.index],ch.word))).toBe(true);
+  });
   it("uses saved challenges for assigned work and progress counts",()=>{
     const content=exercisePresets[0].content;
     const saved=buildChallenges(content).slice(0,1);

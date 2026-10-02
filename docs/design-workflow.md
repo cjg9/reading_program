@@ -12,7 +12,7 @@ File key: `tfTA46pQ1s1YHtvB10qrkg`; page: `0:1`.
 | Student portal `/student` | `2:333` | `2:1531` | `AuthForm.tsx`, `StudentDashboard.tsx` |
 | Teacher classrooms | `2:366` | `2:1560` | `TeacherDashboard.tsx` |
 | Class students | `2:568` | `2:1667` | `ClassPeople.tsx` |
-| Class exercises | `2:780` | `2:1776` | `TeacherExercises.tsx` |
+| Class practices | `2:780` | `2:1776` | `TeacherExercises.tsx` |
 | Class statistics | `2:1246` | `2:1862` | `ClassInsights.tsx` |
 
 `/welcome` remains an alias of the homepage. Invitation links continue to use
@@ -27,8 +27,8 @@ teal student controls, light surfaces, classroom tiles, class tabs, and compact
 exercise rows from the reference. `src/design.css` supplies the shared visual theme
 over existing functional component styles.
 
-The public homepage describes ten game styles and four existing Dog Detectives
-presets. Paid plans, invented testimonials, school integrations, Google/SSO sign-in,
+The public homepage describes ten game styles and one original Dog Detectives
+passage. Paid plans, invented testimonials, school integrations, Google/SSO sign-in,
 class codes, Lexile scores, grades, and unsupported analytics are omitted.
 Students and teachers use the existing email/password account flow.
 
@@ -43,9 +43,32 @@ work and archived assignments do not contribute. Students enrolled in multiple
 classes count once in the dashboard's enrolled-students total. Empty classes have
 no completion rate in statistics. Load failures display an error/retry control.
 
-Class tabs preserve invitation and exercise drafts while refreshing records when
-the user returns. Roster moderation, the editable invitation table, the collapsed
-Excel/Sheets paste area, presets, and saved student work remain available.
+Class tabs preserve invitation drafts while refreshing records when the user returns.
+Per the October 2 feedback, unsaved practice drafts are discarded when leaving
+Practices. Customization always saves a new copy; the original remains available.
+Roster moderation, the editable invitation table, the collapsed Excel/Sheets paste
+area, and saved student work remain available.
+
+## Practice feedback implemented — October 2, 2026
+
+- Visible terminology is Practices; database/API names remain compatible.
+- The library groups versions by original passage and lists saved practices separately.
+- Original title/text, vocabulary priorities and optional sentence numbers travel in
+  the existing JSON content. Database validation already accepts these fields.
+- Read aloud supports pause, resume, stop and speed using browser speech synthesis.
+  Missing words are read as “blank”; missing endings are spoken truncated. Ending
+  tokens use separate utterances so they can highlight without word-boundary support.
+  Speech stops when the view closes or the document becomes hidden.
+- Missing endings have no initial selection, background or spaces. Hover, keyboard
+  focus, selection or speech reveals the spaces. Disappearing words remain unchanged.
+- Upside-down practice rotates full numbered sentences, with individual word answers.
+  Teachers can enter ranges such as `3–6` and inspect the numbered passage.
+- Automatic challenge selection favors vocabulary; explicit targets still take precedence.
+- Practice views use the available width. Customize and Preview scroll and focus the view.
+- Previously assigned manifests and token indexes remain unchanged, preserving progress.
+
+These new screens and terminology are queued for Figma synchronization alongside
+the existing pending work below; the application implementation is the current reference.
 
 ## Asset provenance
 
@@ -79,11 +102,13 @@ Remaining work when access permits:
 1. Update route annotations to homepage `/`, student `/student`, teacher `/teacher`.
 2. Replace remaining sample analytics graphs with the actual completion summary
    and per-exercise completion bars, on both desktop and mobile statistics frames.
-3. Add the four-preset reading-library section and align the final homepage copy.
+3. Add the single original-passage library, saved-practice list and updated homepage copy.
 4. Align roster/invitation placement, class overview, sidebar navigation, signup
    details, and remaining classroom sample values with the working UI.
 5. Inspect every changed desktop/mobile frame for clipped text, empty layout gaps,
    and placeholder controls after the initial visibility changes.
+6. Align practice terminology, full-width player, read-aloud controls, vocabulary
+   priority and sentence-range customization with the October 2 feedback.
 
 No Figma upgrade is required to run or deploy this application. Figma and production
 are not automatically synchronized: future UI work should read the affected frame,

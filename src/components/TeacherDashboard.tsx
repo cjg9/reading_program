@@ -289,7 +289,7 @@ export function TeacherDashboard({ client, user }: TeacherDashboardProps) {
             {selectedClass.name}
           </h1>
           <p>
-            Create reading exercises, assign them to your class, and support your students.
+            Create reading practices, assign them to your class, and support your students.
           </p>
           <time dateTime={selectedClass.last_accessed_at}>
             Last accessed: {formatRelativeTime(selectedClass.last_accessed_at, clock)}
@@ -314,7 +314,7 @@ export function TeacherDashboard({ client, user }: TeacherDashboardProps) {
             <button ref={createTile} className="primary-button create-class-button" onClick={openCreateDialog} disabled={openingClassId !== null}><img src="/design/plus.svg" alt=""/>Create New Class</button>
           </header>
 
-          {!loadingClasses && !loadError && <><div className="metric-grid dashboard-metrics"><article><span>Active classrooms</span><strong>{classes.length}</strong><small>Your reading spaces</small></article><article><span>Enrolled students</span><strong>{overview.loading || overview.error ? "—" : overview.summary.students}</strong><small>Across your classrooms</small></article><article><span>Completed activities</span><strong>{overview.loading || overview.error ? "—" : overview.summary.completed}</strong><small>On active exercises</small></article></div>{overview.error && <p role="alert">{overview.error} <button className="text-button" onClick={overview.refresh}>Retry statistics</button></p>}<label className="search-field"><img src="/design/search.svg" alt=""/><span className="sr-only">Find a class</span><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Find a classroom..."/></label></>}
+          {!loadingClasses && !loadError && <><div className="metric-grid dashboard-metrics"><article><span>Active classrooms</span><strong>{classes.length}</strong><small>Your reading spaces</small></article><article><span>Enrolled students</span><strong>{overview.loading || overview.error ? "—" : overview.summary.students}</strong><small>Across your classrooms</small></article><article><span>Completed activities</span><strong>{overview.loading || overview.error ? "—" : overview.summary.completed}</strong><small>On active practices</small></article></div>{overview.error && <p role="alert">{overview.error} <button className="text-button" onClick={overview.refresh}>Retry statistics</button></p>}<label className="search-field"><img src="/design/search.svg" alt=""/><span className="sr-only">Find a class</span><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Find a classroom..."/></label></>}
           <div className="menu-message" aria-live="polite" aria-atomic="true">
             {actionError && <p className="error-message">{actionError}</p>}
             {notice && <p className="success-message">{notice}</p>}
@@ -352,7 +352,7 @@ export function TeacherDashboard({ client, user }: TeacherDashboardProps) {
                     >
                       <span className="class-tile-topline"><span className="status-badge">Active</span><img src="/design/chevron-right.svg" alt=""/></span>
                       <span className="class-tile-name">{teacherClass.name}</span>
-                      {!overview.loading && !overview.error && <span className="class-metrics"><span><img src="/design/users.svg" alt=""/>{overview.members.filter(m=>m.class_id===teacherClass.id).length} students</span><span>Exercise completion <strong>{summarizeReading(overview.members.filter(m=>m.class_id===teacherClass.id),overview.assignments.filter(a=>a.class_id===teacherClass.id),overview.progress).rate}%</strong></span><progress aria-label={`${teacherClass.name} exercise completion`} value={summarizeReading(overview.members.filter(m=>m.class_id===teacherClass.id),overview.assignments.filter(a=>a.class_id===teacherClass.id),overview.progress).rate} max={100}/></span>}
+                      {!overview.loading && !overview.error && <span className="class-metrics"><span><img src="/design/users.svg" alt=""/>{overview.members.filter(m=>m.class_id===teacherClass.id).length} students</span><span>Practice completion <strong>{summarizeReading(overview.members.filter(m=>m.class_id===teacherClass.id),overview.assignments.filter(a=>a.class_id===teacherClass.id),overview.progress).rate}%</strong></span><progress aria-label={`${teacherClass.name} practice completion`} value={summarizeReading(overview.members.filter(m=>m.class_id===teacherClass.id),overview.assignments.filter(a=>a.class_id===teacherClass.id),overview.progress).rate} max={100}/></span>}
                       <time
                         className="class-tile-detail"
                         dateTime={teacherClass.last_accessed_at}

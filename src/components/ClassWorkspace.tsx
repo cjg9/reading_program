@@ -4,7 +4,7 @@ import {ClassPeople} from "./ClassPeople";
 import {TeacherExercises} from "./TeacherExercises";
 import {ClassInsights} from "./ClassInsights";
 
-const sections = ["Overview", "Students", "Exercises", "Statistics"] as const;
+const sections = ["Overview", "Students", "Practices", "Statistics"] as const;
 type Section = typeof sections[number];
 
 export function ClassWorkspace({client, classId}: {client: SupabaseClient; classId: number}) {
@@ -41,17 +41,17 @@ export function ClassWorkspace({client, classId}: {client: SupabaseClient; class
         <p>Invite your students, share a word quest, and follow their progress.</p>
         <div className="overview-grid">
           <button onClick={() => setTab("Students")}><img src="/design/users.svg" alt=""/><strong>Manage students</strong><span>Send invitations and manage your class roster.</span></button>
-          <button onClick={() => setTab("Exercises")}><img src="/design/exercise.svg" alt=""/><strong>Assign a reading quest</strong><span>Choose a starter game or create your own passage.</span></button>
+          <button onClick={() => setTab("Practices")}><img src="/design/exercise.svg" alt=""/><strong>Assign a reading practice</strong><span>Customize a library passage or create your own.</span></button>
           <button onClick={() => setTab("Statistics")}><img src="/design/dashboard.svg" alt=""/><strong>See class progress</strong><span>Review completed activities and participation.</span></button>
         </div>
       </div>
     </section>
-    {/* Keep forms mounted so changing sections does not discard draft invitations or passages. */}
+    {/* Preserve invitation drafts; practice drafts are discarded when their section closes. */}
     <section role="tabpanel" id="class-panel-Students" aria-labelledby="class-tab-Students" hidden={tab !== "Students"} tabIndex={0}>
       <ClassPeople client={client} classId={classId} active={tab === "Students"}/>
     </section>
-    <section role="tabpanel" id="class-panel-Exercises" aria-labelledby="class-tab-Exercises" hidden={tab !== "Exercises"} tabIndex={0}>
-      <TeacherExercises client={client} classId={classId} active={tab === "Exercises"}/>
+    <section role="tabpanel" id="class-panel-Practices" aria-labelledby="class-tab-Practices" hidden={tab !== "Practices"} tabIndex={0}>
+      <TeacherExercises client={client} classId={classId} active={tab === "Practices"}/>
     </section>
     <section role="tabpanel" id="class-panel-Statistics" aria-labelledby="class-tab-Statistics" hidden={tab !== "Statistics"} tabIndex={0}>
       {tab === "Statistics" && <ClassInsights client={client} classId={classId}/>}

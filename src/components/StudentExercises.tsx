@@ -18,7 +18,7 @@ export function StudentExercises({client,classId,studentId}:{client:SupabaseClie
       const items=(a.data??[]) as Assignment[];
       const p=items.length?await client.from("exercise_progress").select("assignment_id,student_id,progress,completed_at").eq("student_id",studentId).in("assignment_id",items.map(x=>x.id)):{data:[],error:null};
       if(p.error)throw p.error;setAssignments(items);setRecords(p.data??[]);
-    }catch{setError("We could not load your exercises. Please try again.");}finally{setLoading(false);}
+    }catch{setError("We could not load your practices. Please try again.");}finally{setLoading(false);}
   },[client,classId,studentId]);
   useEffect(()=>{void load();},[load]);
   async function save(assignment:Assignment,progress:ExerciseProgress,finish:boolean) {
@@ -34,15 +34,15 @@ export function StudentExercises({client,classId,studentId}:{client:SupabaseClie
   const record=records.find(x=>x.assignment_id===selected);
   return <section className="exercises-section" aria-labelledby="student-exercises-heading">
     <header className="exercise-section-heading"><div><p className="eyebrow">Your next discovery</p><h2 id="student-exercises-heading">Reading quests</h2></div>
-      <button className="text-button" disabled={loading||saving} onClick={()=>{setSelected(null);void load();}}>Refresh exercises</button></header>
-    {error?<p className="error-message" role="alert">{error}</p>:loading?<p role="status">Loading your exercises...</p>:assignment?<>
-      <button className="back-button" disabled={saving} onClick={()=>setSelected(null)}>← All exercises</button>
+      <button className="text-button" disabled={loading||saving} onClick={()=>{setSelected(null);void load();}}>Refresh practices</button></header>
+    {error?<p className="error-message" role="alert">{error}</p>:loading?<p role="status">Loading your practices...</p>:assignment?<>
+      <button className="back-button" disabled={saving} onClick={()=>setSelected(null)}>← All practices</button>
       <ExercisePlayer key={assignment.id} content={assignment.content} initialProgress={record?.progress} completed={Boolean(record?.completed_at)} onSave={(p,f)=>save(assignment,p,f)}/>
-    </>:assignments.length===0?<p>Your teacher hasn’t assigned an exercise yet. Check back soon.</p>:<div className="exercise-grid">{assignments.map(a=>{
+    </>:assignments.length===0?<p>Your teacher hasn’t assigned a practice yet. Check back soon.</p>:<div className="exercise-grid">{assignments.map(a=>{
       const p=records.find(x=>x.assignment_id===a.id);return <article className="exercise-card" key={a.id}>
         <p className="eyebrow">{p?.completed_at?"Quest complete":p?"Keep going":"New quest"}</p><h3>{a.content.title}</h3><p>{strategies[a.content.strategy].name}</p>
         <p>{p?completedChallenges(a.content,p.progress):0} / {exerciseChallenges(a.content).length} words solved</p>
-        <button className="primary-button" onClick={()=>setSelected(a.id)}>{p?.completed_at?"Review exercise":p?"Continue exercise":"Start exercise"}</button></article>;
+        <button className="primary-button" onClick={()=>setSelected(a.id)}>{p?.completed_at?"Review practice":p?"Continue practice":"Start practice"}</button></article>;
     })}</div>}
   </section>;
 }

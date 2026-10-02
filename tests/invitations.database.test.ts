@@ -77,6 +77,19 @@ const sourceContent=exercisePresets[0].content;
 const storedContent={...sourceContent,challenges:buildChallenges(sourceContent)};
 const solvedProgress={answers:Object.fromEntries(storedContent.challenges.map(c=>[String(c.index),c.word])),hints:[]};
 describe("exercise authorization and saved practice",()=>{
+  it("stores original passage and sentence metadata in a new practice and completes individual word answers",async()=>{
+    await prepare();await asUser(student);await accept();await asUser(teacher);
+    const content={...sourceContent,title:"Sentences 3–6",strategy:"upside" as const,targetWords:[],sentenceNumbers:[3,4,5,6],priorityWords:["chaos"],sourceTitle:"Dog Detectives",sourcePassage:sourceContent.passage};
+    const saved={...content,challenges:buildChallenges(content)};
+    const id=(await db.query<{id:string}>("select save_reading_exercise($1) as id",[saved])).rows[0].id;
+    const assignment=(await db.query<{id:string}>("select assign_reading_exercise(1,$1) as id",[id])).rows[0].id;
+    expect((await db.query("select content from exercise_assignments where id=$1",[assignment])).rows).toEqual([{content:saved}]);
+    expect((await db.query("select id from reading_exercises where preset_key is not null")).rows).toHaveLength(4);
+    await asUser(student);
+    const progress={answers:Object.fromEntries(saved.challenges.map(c=>[c.index,c.word])),hints:[]};
+    await db.query("select save_exercise_progress($1,$2,true)",[assignment,progress]);
+    expect((await db.query("select completed_at is not null as completed from exercise_progress where assignment_id=$1",[assignment])).rows).toEqual([{completed:true}]);
+  });
   it("offers four immutable presets to teachers and supports private exercises",async()=>{
     await asUser(teacher);
     expect((await db.query("select id from reading_exercises")).rows).toHaveLength(4);
