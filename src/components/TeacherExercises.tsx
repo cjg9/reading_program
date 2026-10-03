@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { buildChallenges, exerciseChallenges, completedChallenges, strategies, validateExercise, passageLibrary, passageSentences, parseSentenceNumbers, splitPassage, type Assignment, type Exercise, type ExerciseContent, type ProgressRecord, type Strategy } from "../lib/exercises";
+import { buildChallenges, exerciseChallenges, completedChallenges, strategies, validateExercise, passageLibrary, splitPassage, type Assignment, type Exercise, type ExerciseContent, type ProgressRecord, type Strategy } from "../lib/exercises";
 import { ExercisePlayer } from "./ExercisePlayer";
 import {ReadAloud} from "./ReadAloud";
 
@@ -24,7 +24,6 @@ export function TeacherExercises({client,classId,active=true}:{client:SupabaseCl
   const [editor,setEditor]=useState<ExerciseContent|null>(null);
   const [targets,setTargets]=useState("");
   const [priorityWords,setPriorityWords]=useState("");
-  const [sentenceRange,setSentenceRange]=useState("");
   const [clues,setClues]=useState("");
   const [preview,setPreview]=useState<ExerciseContent|null>(null);
   const [plainPreview,setPlainPreview]=useState(false);
@@ -57,11 +56,11 @@ export function TeacherExercises({client,classId,active=true}:{client:SupabaseCl
   function openEditor(exercise?:Exercise) {
     const content=exercise?structuredClone(exercise.content):blank();
     delete content.challenges;
+    delete content.sentenceNumbers;
     if(exercise){content.sourceTitle??=content.title.split(" · ")[0];content.sourcePassage??=content.passage;}
     setEditor(content);
     setTargets(content.targetWords.join(", "));
     setPriorityWords((content.priorityWords??Object.keys(content.vocabulary)).join(", "));
-    setSentenceRange(content.sentenceNumbers?.join(", ")??"");
     setClues(Object.entries(content.vocabulary).map(([word,v])=>`${word} | ${v.synonym} | ${v.definition}`).join("\n"));
     setPreview(null);setError("");setNotice("");
     if(editor)reveal(editorRef.current);
@@ -74,9 +73,7 @@ export function TeacherExercises({client,classId,active=true}:{client:SupabaseCl
       if(cells.length!==3||cells.some(x=>!x)){setError("Use one clue per line: word | synonym | definition.");return null;}
       vocabulary[cells[0].toLowerCase()]={synonym:cells[1],definition:cells[2]};
     }
-    const sentenceNumbers=editor.strategy==="upside"?parseSentenceNumbers(sentenceRange,passageSentences(editor.passage).length):[];
-    if(sentenceNumbers===null){setError("Enter valid sentence numbers or ranges, such as 1, 3–6.");return null;}
-    const content={...editor,title:editor.title.trim(),passage:editor.passage.trim(),sourceTitle:editor.sourceTitle??editor.title.trim(),sourcePassage:editor.sourcePassage??editor.passage.trim(),sentenceNumbers,priorityWords:priorityWords.split(",").map(x=>x.trim()).filter(Boolean),targetWords:targets.split(",").map(x=>x.trim()).filter(Boolean),vocabulary};
+    const content={...editor,title:editor.title.trim(),passage:editor.passage.trim(),sourceTitle:editor.sourceTitle??editor.title.trim(),sourcePassage:editor.sourcePassage??editor.passage.trim(),priorityWords:priorityWords.split(",").map(x=>x.trim()).filter(Boolean),targetWords:targets.split(",").map(x=>x.trim()).filter(Boolean),vocabulary};
     const invalid=validateExercise(content);if(invalid){setError(invalid);return null;}return content;
   }
   async function save(){
@@ -113,7 +110,6 @@ export function TeacherExercises({client,classId,active=true}:{client:SupabaseCl
         {Object.entries(strategies).map(([key,value])=><option key={key} value={key}>{value.name}</option>)}</select></div>
         <div><label htmlFor="exercise-targets">Target words (optional)</label><input id="exercise-targets" value={targets} onChange={e=>setTargets(e.target.value)} placeholder="attentive, chaos, posture"/></div></div>
       <p className="people-help">Separate target words with commas, or leave blank to choose automatically, favoring vocabulary words. Up to 40 challenges per passage.</p>
-      {editor.strategy==="upside"&&<div className="sentence-picker"><label htmlFor="sentence-range">Upside-down sentence numbers</label><input id="sentence-range" value={sentenceRange} onChange={e=>setSentenceRange(e.target.value)} placeholder="For example: 1, 3–6"/><p className="people-help">Leave blank to turn sentences containing target words. Students answer individual words.</p><details><summary>Show numbered sentences</summary><ol>{passageSentences(editor.passage).map(s=><li key={s.number}>{s.tokens.map(t=>t.text).join("")}</li>)}</ol></details></div>}
       <label htmlFor="priority-words">Vocabulary words to practice more often</label><input id="priority-words" value={priorityWords} onChange={e=>setPriorityWords(e.target.value)} placeholder="attentive, chaos, posture"/><p className="people-help">These words are favored when target words are selected automatically and fit the chosen game.</p>
       <details open={editor.strategy==="synonym"||editor.strategy==="definition"}><summary>Vocabulary clues (optional for other games)</summary>
         <label htmlFor="exercise-clues">One per line: word | synonym | definition</label><textarea id="exercise-clues" rows={4} value={clues} onChange={e=>setClues(e.target.value)} placeholder="attentive | watchful | Paying close attention."/></details>

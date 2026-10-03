@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { exerciseChallenges, cleanWord, completedChallenges, correctAnswer, emptyProgress, splitPassage, passageSentences, strategies, type ExerciseContent, type ExerciseProgress } from "../lib/exercises";
+import { exerciseChallenges, cleanWord, completedChallenges, correctAnswer, emptyProgress, splitPassage, strategies, type ExerciseContent, type ExerciseProgress } from "../lib/exercises";
 import {ReadAloud} from "./ReadAloud";
 
 interface Props {
@@ -54,9 +54,7 @@ export function ExercisePlayer({content,initialProgress,completed=false,preview=
     <p>{strategies[content.strategy].instruction} {content.strategy==="endings"?"Listen for words that sound unfinished. Hover over or select a word to reveal the missing spaces, then type the complete word.":"Select a highlighted word, type the original, and check your answer."}</p>
     <ReadAloud parts={spokenParts} onWord={setSpoken}/>
     <progress aria-label="Words solved" value={solved} max={Math.max(challenges.length,1)} />
-    <div className={`exercise-play-area ${finished?"is-finished":""}`}><div className="reading-passage">{passageSentences(content.passage).map(sentence=>{
-      const rotated=content.strategy==="upside"&&content.sentenceNumbers?.length?content.sentenceNumbers.includes(sentence.number):sentence.tokens.some(t=>byIndex.get(t.index)?.effect==="upside");
-      return <span key={sentence.number} className={rotated?"reading-sentence sentence-upside":"reading-sentence"} data-sentence={sentence.number}>{sentence.tokens.map(({text:token,index})=>{
+    <div className={`exercise-play-area ${finished?"is-finished":""}`}><div className="reading-passage">{splitPassage(content.passage).map((token,index)=>{
       const challenge=byIndex.get(index);
       if(!challenge)return <span key={index}>{token}</span>;
       const done=correctAnswer(progress.answers[index]??"",challenge.word);
@@ -64,9 +62,9 @@ export function ExercisePlayer({content,initialProgress,completed=false,preview=
         className={`reading-word ${challenge.effect==="endings"&&!done?"missing-ending":""} ${done?"is-solved":""} ${selected===index?"is-selected":""} ${spoken===index?"is-spoken":""}`}
         aria-label={done?`Solved word: ${challenge.word}`:`Challenge ${challenges.indexOf(challenge)+1}: ${challenge.effect==='missing'?'missing word':challenge.shown}`}
         aria-pressed={selected===index} onClick={()=>select(index)}>
-        {done?token.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu,""):challenge.effect==="endings"?<>{token.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu,"").slice(0,challenge.shown.replace(/_/g,"").length)}<span className="ending-spaces">{challenge.shown.match(/_+$/)?.[0]}</span></>:challenge.shown}
+        {done?token.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu,""):challenge.effect==="endings"?<>{token.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu,"").slice(0,challenge.shown.replace(/_/g,"").length)}<span className="ending-spaces">{challenge.shown.match(/_+$/)?.[0]}</span></>:challenge.effect==="upside"?<span className="word-upside">{challenge.shown}</span>:challenge.shown}
       </button>{token.match(/[^\p{L}\p{N}]*$/u)?.[0]}</span>;
-    })}</span>;})}</div>
+    })}</div>
     {!finished&&!active&&<p className="word-answer people-help">Select an unfinished word in the passage to restore its ending.</p>}
     {!finished && active && <form className="word-answer" onSubmit={event=>{event.preventDefault(); void check();}}>
       <label htmlFor="word-answer">Original word for challenge {challenges.indexOf(active)+1}</label>

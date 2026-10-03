@@ -61,8 +61,9 @@ area, and saved student work remain available.
   Speech stops when the view closes or the document becomes hidden.
 - Missing endings have no initial selection, background or spaces. Hover, keyboard
   focus, selection or speech reveals the spaces. Disappearing words remain unchanged.
-- Upside-down practice rotates full numbered sentences, with individual word answers.
-  Teachers can enter ranges such as `3–6` and inspect the numbered passage.
+- Updated October 3: upside-down practice rotates only target vocabulary words.
+  Sentence-range controls were removed. Existing assignment manifests and saved
+  answers are retained; legacy sentence metadata no longer controls rotation.
 - Automatic challenge selection favors vocabulary; explicit targets still take precedence.
 - Practice views use the available width. Customize and Preview scroll and focus the view.
 - Previously assigned manifests and token indexes remain unchanged, preserving progress.
@@ -108,7 +109,7 @@ Remaining work when access permits:
 5. Inspect every changed desktop/mobile frame for clipped text, empty layout gaps,
    and placeholder controls after the initial visibility changes.
 6. Align practice terminology, full-width player, read-aloud controls, vocabulary
-   priority and sentence-range customization with the October 2 feedback.
+   priority and word-only upside-down practice with the October 2–3 feedback.
 
 No Figma upgrade is required to run or deploy this application. Figma and production
 are not automatically synchronized: future UI work should read the affected frame,

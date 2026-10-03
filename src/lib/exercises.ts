@@ -1,7 +1,7 @@
 export const strategies = {
   missing: {name:"Disappearing words", instruction:"Use the sentence around each blank to work out the missing word."},
   endings: {name:"Missing endings", instruction:"Restore the missing word endings, such as ing, ed, or tion."},
-  upside: {name:"Upside-down sentences", instruction:"Read the upside-down sentences, then type the highlighted target words."},
+  upside: {name:"Upside-down words", instruction:"Read the upside-down vocabulary words using the surrounding sentence for context."},
   scramble: {name:"Swapped letters", instruction:"Put the mixed-up letters back in order."},
   digraphs: {name:"Missing letter pairs", instruction:"Restore missing letter pairs such as sh, ch, th, and wh."},
   backwards: {name:"Backwards words", instruction:"Read the reversed letters to recover each word."},
@@ -21,7 +21,7 @@ export interface ExerciseContent {
   challenges?: Challenge[];
   sourceTitle?: string;
   sourcePassage?: string;
-  sentenceNumbers?: number[];
+  sentenceNumbers?: number[]; // Legacy metadata; assigned challenges still use their saved indexes.
   priorityWords?: string[];
 }
 export interface Exercise { id:string; teacher_id:string|null; preset_key:string|null; content:ExerciseContent }
@@ -36,38 +36,11 @@ export function validateExercise(content:ExerciseContent):string {
   if (!(content.strategy in strategies)) return "Choose a reading game.";
   if (content.targetWords.length > 50) return "Choose up to 50 target words.";
   if ((content.priorityWords?.length ?? 0) > 50) return "Choose up to 50 vocabulary words.";
-  if (content.sentenceNumbers?.some(n=>!Number.isInteger(n)||n<1||n>passageSentences(content.passage).length)) return "Choose sentence numbers that appear in this passage.";
   if (["definition","synonym"].includes(content.strategy) && !Object.keys(content.vocabulary).length) return "Add vocabulary clues or choose another game.";
   if (!buildChallenges(content).length) return "No words match this game. Change the target words or choose another game.";
   return "";
 }
 export function splitPassage(passage:string) { return passage.split(/(\s+)/).filter(Boolean); }
-// Keep the original whitespace-token indexes: saved student answers use these keys.
-export function passageSentences(passage:string) {
-  const sentences:{number:number;tokens:{text:string;index:number}[]}[]=[];
-  let tokens:{text:string;index:number}[]=[];
-  let ended=false;
-  splitPassage(passage).forEach((text,index)=>{
-    if(ended && text.trim()) { sentences.push({number:sentences.length+1,tokens}); tokens=[]; ended=false; }
-    tokens.push({text,index});
-    if(/[.!?]["'”’)]*$/.test(text) && !/^(Mr|Mrs|Ms|Dr|Prof|St)\.$/i.test(text)) ended=true;
-    if(/\n\s*\n/.test(text)) ended=true;
-  });
-  if(tokens.length)sentences.push({number:sentences.length+1,tokens});
-  return sentences;
-}
-export function parseSentenceNumbers(value:string,count:number):number[]|null {
-  if(!value.trim())return [];
-  const result=new Set<number>();
-  for(const part of value.split(",")) {
-    const match=part.trim().match(/^(\d+)\s*(?:[-–]\s*(\d+))?$/);
-    if(!match)return null;
-    const start=Number(match[1]),end=Number(match[2]??match[1]);
-    if(start<1||end<start||end>count)return null;
-    for(let n=start;n<=end;n++)result.add(n);
-  }
-  return [...result].sort((a,b)=>a-b);
-}
 export function passageLibrary(library:Exercise[]):Exercise[] {
   const originals=new Map<string,Exercise>();
   for(const exercise of [...library].sort((a,b)=>Number(Boolean(b.preset_key))-Number(Boolean(a.preset_key)))) {
@@ -84,8 +57,6 @@ export function buildChallenges(content:ExerciseContent):Challenge[] {
   const targets = new Set(content.targetWords.map(cleanWord));
   const result:Challenge[]=[];
   const priorities=new Set([...(content.priorityWords??[]),...Object.keys(content.vocabulary)].map(cleanWord));
-  const sentences=passageSentences(content.passage);
-  const allowed=new Set(sentences.filter(s=>!content.sentenceNumbers?.length||content.sentenceNumbers.includes(s.number)).flatMap(s=>s.tokens.map(t=>t.index)));
   const candidates:{word:string;index:number}[]=[];
   let eligible=0;
   splitPassage(content.passage).forEach((token,index) => {
@@ -96,7 +67,6 @@ export function buildChallenges(content:ExerciseContent):Challenge[] {
     if (content.strategy === "digraphs" && !/(sh|ch|th|wh|ph|ck|ng)/.test(word)) return;
     if (["synonym","definition"].includes(content.strategy) && !vocab?.[content.strategy as "synonym"|"definition"]) return;
     if (targets.size && !targets.has(word)) return;
-    if (content.strategy === "upside" && !allowed.has(index))return;
     const sampled=eligible++ % 5 === 0;
     if (!targets.size && !priorities.has(word) && !sampled) return;
     candidates.push({word,index});

@@ -41,15 +41,23 @@ it("leaves endings unselected, reads their truncated form and reveals them as sp
   expect(word.getAttribute("aria-pressed")).toBe("true");
   expect(screen.getByLabelText(/Original word/)).toBeTruthy();
 });
-it("rotates complete chosen sentences and keeps individual word answers",()=>{
-  const content={...endingContent,strategy:"upside" as const,passage:"The dogs were watching carefully. Children played together outside.",sentenceNumbers:[2],targetWords:["children"]};
+it.each(["upside","mixed"] as const)("rotates only the saved target word in %s and restores it after a correct answer",async(strategy)=>{
+  const source={...endingContent,strategy:"upside" as const,passage:'The dogs were watching carefully. "Children" played together outside.',sentenceNumbers:[2],targetWords:["children"]};
+  const challenges=buildChallenges(source);
+  const content={...source,strategy,challenges};
   const {container}=render(<ExercisePlayer content={content}/>);
-  const rotated=container.querySelectorAll(".sentence-upside");
+  const rotated=container.querySelectorAll(".word-upside");
   expect(rotated).toHaveLength(1);
-  expect(rotated[0].textContent?.toLowerCase()).toBe("children played together outside.");
-  expect(rotated[0].querySelectorAll("button")).toHaveLength(1);
-  expect(buildChallenges(content)[0].word).toBe("children");
+  expect(rotated[0].textContent).toBe("children");
+  expect(rotated[0].parentElement?.tagName).toBe("BUTTON");
+  expect(container.querySelector(".sentence-upside")).toBeNull();
+  expect(container.querySelector(".reading-passage")?.textContent).toBe(source.passage.replace("Children","children"));
   expect(screen.getByLabelText(/Original word/)).toBeTruthy();
+  fireEvent.change(screen.getByLabelText(/Original word/),{target:{value:"children"}});
+  fireEvent.click(screen.getByRole("button",{name:"Check answer"}));
+  await screen.findByText(/You found it/);
+  expect(container.querySelector(".word-upside")).toBeNull();
+  expect(container.querySelector(".reading-passage")?.textContent).toBe(source.passage);
 });
 it("isolates truncated words so highlighting works without browser word-boundary events",()=>{
   expect(speechChunks([{text:"They were ",index:0},{text:"watch",index:4,isolate:true},{text:" together.",index:6}]).map(c=>c.text)).toEqual(["They were ","watch"," together."]);
