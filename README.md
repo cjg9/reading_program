@@ -189,6 +189,44 @@ Supabase migrations from step 2 must already be applied to the project reference
 by the Vercel environment variables. The existing Vercel SPA rewrite makes a
 direct visit to `/teacher` or the legacy `/student` path resolve to the React application.
 
+## Password recovery (teachers and students)
+
+Both sign-in portals offer **Forgot password?**. Teachers can also open
+`/teacher/forgot-password`; students can open `/student/forgot-password`.
+Requests use Supabase Auth email delivery and always show a neutral confirmation
+so the screen does not disclose whether an email has an account.
+
+In your hosted Supabase project's **Authentication -> URL Configuration**, allow
+these URLs for each deployed app origin (and any preview origin you test):
+
+- `https://your-production-domain/teacher/reset-password`
+- `https://your-production-domain/student/reset-password`
+
+The local equivalents are included in `supabase/config.toml`. Updating that file
+does not update a hosted project's URL allowlist. Set the production Site URL too.
+Keep the Supabase reset-password email template's `{{ .ConfirmationURL }}` link
+so Supabase verifies the recovery token before returning to the application.
+Configure Supabase Auth custom SMTP for production delivery; class invitation
+email settings do not configure password recovery email.
+
+Recovery links open a new-password form before dashboard or profile routing.
+Passwords must have at least eight characters and match the confirmation; any
+additional hosted password policy is enforced by Supabase. After a successful
+update, the user can continue with the recovered session. Invalid or expired
+links offer a fresh reset request. No database migration is needed.
+
+Before deployment, run `npm.cmd test` and `npm.cmd run build`. Then verify with
+one teacher account and one student account on the deployed domain:
+
+1. Sign out, request a reset, and open the delivered email link.
+2. Refresh the password form, then enter and confirm a new password.
+3. Continue to the account, sign out, and verify the new password signs in while
+   the old password is rejected.
+4. Reopen the consumed email link and verify it offers a new reset request.
+5. Test delivery and the email link in another browser/device.
+
+See [Supabase's password recovery API](https://supabase.com/docs/reference/javascript/auth-resetpasswordforemail).
+
 ## Before a public launch
 
 - Configure custom SMTP. Supabase's default email service is intended only for

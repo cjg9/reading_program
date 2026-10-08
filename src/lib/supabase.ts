@@ -1,4 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { recoveryCallbackState } from "./password-recovery";
+
+export const initialRecoveryCallback = recoveryCallbackState(window.location.hash, window.location.search);
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim();
 const supabasePublishableKey =

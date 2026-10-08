@@ -267,6 +267,8 @@ export function AuthForm({ client, portal, invitation }: AuthFormProps) {
         </button>
       </form>
 
+      {!isSignUp && <p className="portal-switch"><a href={`${portalPath[portal]}/forgot-password`}>Forgot password?</a></p>}
+
       {portal === "student" && !invitation && <p className="privacy-note">Joining a new class? Open the invitation link in your email.</p>}
       {!invitation && <p className="portal-switch">
         {copy.alternatePrompt}{" "}

@@ -10,6 +10,7 @@ import type { Session, SupabaseClient } from "@supabase/supabase-js";
 import {
   supabase,
   supabaseConfigurationError,
+  initialRecoveryCallback,
 } from "../lib/supabase";
 import { isAccountType, type AccountType } from "../lib/portal";
 
@@ -26,11 +27,13 @@ interface AuthContextValue {
   profileState: ProfileState;
   refreshProfile: () => void;
   session: Session | null;
+  passwordRecovery: boolean;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const [passwordRecovery, setPasswordRecovery] = useState(initialRecoveryCallback.requested);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(Boolean(supabase));
   const [error, setError] = useState<string | null>(
@@ -49,27 +52,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const client = supabase;
     let active = true;
 
-    void client.auth.getSession().then(({ data, error: sessionError }) => {
+    // getSession can return a previously stored account after a failed URL
+    // callback. Check initialization too, so a bad link cannot reset that account.
+    void client.auth.initialize().then(async ({ error: initializationError }) => {
+      const { data, error: sessionError } = await client.auth.getSession();
       if (!active) {
         return;
       }
 
-      if (sessionError) {
+      if (initializationError || sessionError) {
         setError("We could not restore your session. Please refresh and try again.");
       } else {
         setSession(data.session);
       }
 
       setLoading(false);
+    }).catch(() => {
+      if (active) {
+        setError("We could not restore your session. Please refresh and try again.");
+        setLoading(false);
+      }
     });
 
     const {
       data: { subscription },
-    } = client.auth.onAuthStateChange((_event, nextSession) => {
+    } = client.auth.onAuthStateChange((event, nextSession) => {
       if (active) {
+        if (event === "PASSWORD_RECOVERY") setPasswordRecovery(true);
         setSession(nextSession);
-        setError(null);
-        setLoading(false);
+        if (event !== "INITIAL_SESSION") setError(null);
       }
     });
 
@@ -151,8 +162,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profileState,
       refreshProfile,
       session,
+      passwordRecovery,
     }),
-    [error, loading, profileState, session],
+    [error, loading, profileState, session, passwordRecovery],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -7,6 +7,9 @@ import { StudentDashboard } from "./components/StudentDashboard";
 import { TeacherDashboard } from "./components/TeacherDashboard";
 import { WelcomePage } from "./components/WelcomePage";
 import { InvitationPage } from "./components/InvitationPage";
+import { PasswordRecovery } from "./components/PasswordRecovery";
+import { recoveryRoute } from "./lib/password-recovery";
+import { initialRecoveryCallback } from "./lib/supabase";
 import {
   portalPath,
   resolvePortal,
@@ -192,13 +195,15 @@ function AppContent() {
     profileState,
     refreshProfile,
     session,
+    passwordRecovery,
   } = useAuth();
   const portal = resolvePortal(window.location.pathname);
   const path = window.location.pathname.replace(/\/+$/, "") || "/";
-  if (path === "/" || path === "/welcome") return <WelcomePage/>;
+  const recovery = recoveryRoute(path);
+  if (!passwordRecovery && !recovery && (path === "/" || path === "/welcome")) return <WelcomePage/>;
   const isInvitation = window.location.pathname.replace(/\/+$/, "") === "/student/invite";
 
-  if (!portal && !isInvitation) {
+  if (!portal && !isInvitation && !recovery && !passwordRecovery) {
     return <NotFoundScreen />;
   }
 
@@ -208,6 +213,15 @@ function AppContent() {
 
   if (!client) {
     return <SetupScreen message={error ?? "Supabase is not configured."} />;
+  }
+
+  // Recovery sessions must reach the password form before normal account routing.
+  // The explicit route also preserves the form after refreshing a recovery link.
+  if (recovery || passwordRecovery) {
+    const recoveryPortal = profileState.status === "ready" && profileState.userId === session?.user.id ? profileState.accountType : recovery?.portal ?? portal ?? "student";
+    return <PasswordRecovery client={client} portal={recoveryPortal}
+      mode={recovery?.mode ?? "reset"}
+      canReset={Boolean(session) && !error && !initialRecoveryCallback.failed} />;
   }
 
   if (error) {
