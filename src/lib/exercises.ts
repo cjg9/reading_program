@@ -1,7 +1,7 @@
 export const strategies = {
   missing: {name:"Disappearing words", instruction:"Use the sentence around each blank to work out the missing word."},
   endings: {name:"Missing endings", instruction:"Restore the missing word endings, such as ing, ed, or tion."},
-  upside: {name:"Upside-down words", instruction:"Read the upside-down vocabulary words using the surrounding sentence for context."},
+  upside: {name:"Upside-down words", instruction:"Find one upside-down sentence in each paragraph and restore its puzzle words."},
   scramble: {name:"Swapped letters", instruction:"Put the mixed-up letters back in order."},
   digraphs: {name:"Missing letter pairs", instruction:"Restore missing letter pairs such as sh, ch, th, and wh."},
   backwards: {name:"Backwards words", instruction:"Read the reversed letters to recover each word."},
@@ -37,10 +37,34 @@ export function validateExercise(content:ExerciseContent):string {
   if (content.targetWords.length > 50) return "Choose up to 50 target words.";
   if ((content.priorityWords?.length ?? 0) > 50) return "Choose up to 50 vocabulary words.";
   if (["definition","synonym"].includes(content.strategy) && !Object.keys(content.vocabulary).length) return "Add vocabulary clues or choose another game.";
-  if (!buildChallenges(content).length) return "No words match this game. Change the target words or choose another game.";
+  const challenges=buildChallenges(content);
+  if (!challenges.length) return "No words match this game. Change the target words or choose another game.";
+  if (challenges.length>40) return "This practice has more than 40 puzzle words. Use fewer paragraphs or shorter sentences.";
   return "";
 }
 export function splitPassage(passage:string) { return passage.split(/(\s+)/).filter(Boolean); }
+export interface PassageSentence {start:number;end:number;paragraph:number}
+export function passageSentences(passage:string):PassageSentence[] {
+  const tokens=splitPassage(passage);
+  let offset=0;
+  const positions=tokens.map(text=>{const start=offset;offset+=text.length;return {text,start,end:offset};});
+  const sentences:PassageSentence[]=[];
+  const segmenter=new Intl.Segmenter("en",{granularity:"sentence"});
+  let paragraphStart=0;
+  const paragraphs=passage.split(/(?:\r?\n[\t ]*){2,}/);
+  paragraphs.forEach((text,paragraph)=>{
+    for(const segment of segmenter.segment(text)){
+      const start=paragraphStart+segment.index;
+      const end=start+segment.segment.length;
+      const indexes=positions.flatMap((token,index)=>token.text.trim()&&token.start>=start&&token.end<=end?[index]:[]);
+      if(indexes.length)sentences.push({start:indexes[0],end:indexes[indexes.length-1],paragraph});
+    }
+    paragraphStart+=text.length;
+    const separator=passage.slice(paragraphStart).match(/^(?:\r?\n[\t ]*){2,}/)?.[0]??"";
+    paragraphStart+=separator.length;
+  });
+  return sentences;
+}
 export function passageLibrary(library:Exercise[]):Exercise[] {
   const originals=new Map<string,Exercise>();
   for(const exercise of [...library].sort((a,b)=>Number(Boolean(b.preset_key))-Number(Boolean(a.preset_key)))) {
@@ -52,8 +76,21 @@ export function passageLibrary(library:Exercise[]):Exercise[] {
   }
   return [...originals.values()];
 }
-export interface Challenge { index:number; word:string; effect:Strategy; shown:string }
+export interface Challenge { index:number; word:string; effect:Strategy; shown:string; sentenceStart?:number; sentenceEnd?:number }
 export function buildChallenges(content:ExerciseContent):Challenge[] {
+  if(content.strategy==="upside"){
+    const tokens=splitPassage(content.passage);
+    const words=(sentence:PassageSentence)=>tokens.flatMap((token,index)=>index>=sentence.start&&index<=sentence.end&&/\p{L}/u.test(token)?[{index,word:cleanWord(token)}]:[]);
+    const sentences=passageSentences(content.passage);
+    // A short complete sentence in each paragraph keeps the reading task manageable.
+    const selected=new Map<number,PassageSentence>();
+    for(const sentence of sentences){
+      if(!words(sentence).length)continue;
+      const current=selected.get(sentence.paragraph);
+      if(!current||words(sentence).length<words(current).length)selected.set(sentence.paragraph,sentence);
+    }
+    return [...selected.values()].flatMap(sentence=>words(sentence).map(({index,word})=>({index,word,effect:"upside" as const,shown:tokens[index].replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu,""),sentenceStart:sentence.start,sentenceEnd:sentence.end})));
+  }
   const targets = new Set(content.targetWords.map(cleanWord));
   const result:Challenge[]=[];
   const priorities=new Set([...(content.priorityWords??[]),...Object.keys(content.vocabulary)].map(cleanWord));

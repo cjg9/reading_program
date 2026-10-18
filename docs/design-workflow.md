@@ -71,6 +71,18 @@ area, and saved student work remain available.
 These new screens and terminology are queued for Figma synchronization alongside
 the existing pending work below; the application implementation is the current reference.
 
+## ElevenLabs trial — October 17, 2026
+
+The optional trial adds a Narrator selector (Browser voice / ElevenLabs trial),
+preparing-audio feedback, and audio-clock word highlighting. Existing buttons,
+speed selector, typography, and passage highlighting are reused. The trial is
+configured as described in `elevenlabs-trial.md`.
+
+The Figma file was inspected for reading controls during this task. It has no
+read-aloud/narrator controls to update; the practice player and these controls
+remain pending as part of the existing practice-view synchronization work.
+No Figma canvas changes were made for this trial.
+
 ## Asset provenance
 
 The supplied Figma assets are stored in `public/design`; production does not depend

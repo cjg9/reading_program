@@ -13,31 +13,24 @@ function fixture() {
   return {rpc, client: {rpc, from: () => query} as unknown as SupabaseClient};
 }
 
-it("preserves invitation drafts but discards unsaved practice changes when leaving the section", async () => {
-  const {client, rpc} = fixture();
-  render(<ClassWorkspace client={client} classId={42}/>);
+it("opens the global practice library and preserves invitation drafts between class sections", async () => {
+  const {client} = fixture();
+  const openPractices=vi.fn();
+  render(<ClassWorkspace client={client} classId={42} onOpenPractices={openPractices}/>);
+  expect(screen.queryByRole("tab",{name:"Practices"})).toBeNull();
+  fireEvent.click(screen.getByRole("button",{name:/Open My Practices/}));
+  expect(openPractices).toHaveBeenCalledOnce();
   fireEvent.click(screen.getByRole("tab", {name: "Students"}));
   await screen.findByText("No students have joined yet.");
   fireEvent.change(screen.getByLabelText("First name 1"), {target: {value: "Alex"}});
-  fireEvent.click(screen.getByRole("tab", {name: "Practices"}));
-  await screen.findByText(/No practices assigned yet/);
-  fireEvent.click(screen.getByRole("button", {name: "Create practice"}));
-  fireEvent.change(screen.getByLabelText("Title", {exact: true}), {target: {value: "Our word quest"}});
-  const before = rpc.mock.calls.length;
+  fireEvent.click(screen.getByRole("tab", {name: "Overview"}));
   fireEvent.click(screen.getByRole("tab", {name: "Students"}));
-  await waitFor(() => expect(rpc.mock.calls.length).toBeGreaterThan(before));
-  expect(screen.getByLabelText("First name 1")).toHaveProperty("value", "Alex");
-  fireEvent.click(screen.getByRole("tab", {name: "Practices"}));
-  expect(screen.queryByLabelText("Title", {exact: true})).toBeNull();
-  await waitFor(()=>expect(screen.getByRole("button",{name:"Create practice"})).toHaveProperty("disabled",false));
-  fireEvent.click(screen.getByRole("button",{name:"Create practice"}));
-  expect(screen.getByLabelText("Title",{exact:true})).toHaveProperty("value","");
-  expect(rpc.mock.calls.some(([name])=>name==="save_reading_exercise")).toBe(false);
+  await waitFor(()=>expect(screen.getByLabelText("First name 1")).toHaveProperty("value", "Alex"));
 });
 
 it("supports keyboard tab navigation with a single selected tab and a matching panel", async () => {
   const {client} = fixture();
-  render(<ClassWorkspace client={client} classId={42}/>);
+  render(<ClassWorkspace client={client} classId={42} onOpenPractices={vi.fn()}/>);
   fireEvent.keyDown(screen.getByRole("tab", {name: "Overview"}), {key: "ArrowRight"});
   const students = screen.getByRole("tab", {name: "Students", selected: true});
   expect(document.activeElement).toBe(students);

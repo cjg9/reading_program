@@ -36,7 +36,7 @@ beforeAll(async () => {
       $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
     grant usage on schema auth,public to anon,authenticated,service_role;
   `);
-  for (const file of ["20260827231521_create_teacher_classes.sql", "20260828185336_add_student_accounts.sql", "20260910090000_class_invitations.sql", "20260912090000_invitation_student_names.sql", "20260912120000_class_student_removal.sql", "20260915090000_reading_exercises.sql", "20260915090100_reading_exercise_presets.sql"]) {
+  for (const file of ["20260827231521_create_teacher_classes.sql", "20260828185336_add_student_accounts.sql", "20260910090000_class_invitations.sql", "20260912090000_invitation_student_names.sql", "20260912120000_class_student_removal.sql", "20260915090000_reading_exercises.sql", "20260915090100_reading_exercise_presets.sql", "20261018090000_delete_reading_exercises.sql"]) {
     await db.exec(readFileSync(new URL(`../supabase/migrations/${file}`, import.meta.url), "utf8"));
   }
   await db.query(`insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) values
@@ -77,10 +77,38 @@ const sourceContent=exercisePresets[0].content;
 const storedContent={...sourceContent,challenges:buildChallenges(sourceContent)};
 const solvedProgress={answers:Object.fromEntries(storedContent.challenges.map(c=>[String(c.index),c.word])),hints:[]};
 describe("exercise authorization and saved practice",()=>{
-  it("stores original passage and sentence metadata in a new practice and completes individual word answers",async()=>{
+  it("deletes a saved practice while preserving assigned content and student progress",async()=>{
+    await prepare();await asUser(student);await accept();await asUser(teacher);
+    const id=(await db.query<{id:string}>("select save_reading_exercise($1) as id",[storedContent])).rows[0].id;
+    const assignment=(await db.query<{id:string}>("select assign_reading_exercise(1,$1) as id",[id])).rows[0].id;
+    await asUser(student);await db.query("select save_exercise_progress($1,$2)",[assignment,solvedProgress]);
+    await asUser(teacher);await db.query("select delete_reading_exercise($1)",[id]);
+    expect((await db.query("select id from reading_exercises where id=$1",[id])).rows).toEqual([]);
+    expect((await db.query("select exercise_id,content from exercise_assignments where id=$1",[assignment])).rows).toEqual([{exercise_id:null,content:storedContent}]);
+    await asUser(student);
+    await db.query("select save_exercise_progress($1,$2,true)",[assignment,solvedProgress]);
+    expect((await db.query("select progress from exercise_progress where assignment_id=$1",[assignment])).rows).toEqual([{progress:solvedProgress}]);
+  });
+  it("prevents deleting another teacher's saved practice",async()=>{
+    await asUser(teacher);
+    const id=(await db.query<{id:string}>("select save_reading_exercise($1) as id",[storedContent])).rows[0].id;
+    await asUser(otherTeacher);
+    await expect(db.query("select delete_reading_exercise($1)",[id])).rejects.toThrow("Exercise unavailable");
+  });
+  it("prevents deleting built-in presets",async()=>{
+    const {id}=await exerciseFixture();
+    await expect(db.query("select delete_reading_exercise($1)",[id])).rejects.toThrow("Exercise unavailable");
+  });
+  it("prevents students from deleting practices",async()=>{
+    const {id}=await exerciseFixture();await asUser(student);
+    await expect(db.query("select delete_reading_exercise($1)",[id])).rejects.toThrow("Teacher account required");
+  });
+  it("stores whole-sentence upside-down puzzles and completes their individual word answers",async()=>{
     await prepare();await asUser(student);await accept();await asUser(teacher);
     const content={...sourceContent,title:"Sentences 3–6",strategy:"upside" as const,targetWords:[],sentenceNumbers:[3,4,5,6],priorityWords:["chaos"],sourceTitle:"Dog Detectives",sourcePassage:sourceContent.passage};
     const saved={...content,challenges:buildChallenges(content)};
+    expect(new Set(saved.challenges.map(c=>c.sentenceStart)).size).toBe(4);
+    expect(saved.challenges.every(c=>c.sentenceEnd!==undefined)).toBe(true);
     const id=(await db.query<{id:string}>("select save_reading_exercise($1) as id",[saved])).rows[0].id;
     const assignment=(await db.query<{id:string}>("select assign_reading_exercise(1,$1) as id",[id])).rows[0].id;
     expect((await db.query("select content from exercise_assignments where id=$1",[assignment])).rows).toEqual([{content:saved}]);
@@ -310,3 +338,4 @@ describe("class invitation authorization and lifecycle", () => {
     await asUser(otherTeacher); await expect(db.query("select * from class_roster(1)")).rejects.toThrow("Class unavailable");
   });
 });
+

@@ -1,19 +1,23 @@
 /* Reading uses the available workspace, including the sidebar space on desktop. */
 .class-workspace { max-width:none; }
-.design-dashboard:has(#class-panel-Practices:not([hidden])) .app-sidebar { display:none; }
-.design-dashboard:has(#class-panel-Practices:not([hidden])) .class-workspace { margin-left:0; width:100%; }
 .exercises-section { border:0; padding:0; background:transparent; }
 .exercise-preview, .exercise-editor { scroll-margin-top:24px; }
 .exercise-play-area .reading-passage { border:0; border-radius:0; padding:12px 0; margin-top:12px; background:transparent; }
 .exercise-player { max-width:none; }
+.practice-paragraph + .practice-paragraph { margin-top:24px; }
+.practice-paragraph p { margin:6px 0 0; }
+.paragraph-word-count { display:block; color:var(--muted); font-size:14px; font-weight:600; line-height:1.5; white-space:normal; }
+.synonym-definition { color:var(--muted); }
+.exercise-player .reading-word { background:transparent; border:0; color:inherit; padding:0; border-radius:3px; }
+.exercise-player .reading-word.is-solved { background:transparent; color:inherit; }
+.sentence-upside { display:inline-block; max-width:100%; transform:rotate(180deg); vertical-align:middle; }
 .read-aloud { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin:20px 0; }
 .read-aloud label { display:flex; align-items:center; gap:8px; font-size:14px; color:var(--muted); }
 .read-aloud select { font:inherit; padding:8px; border:1px solid var(--line); border-radius:8px; background:white; }
 .reading-word.missing-ending { background:transparent; border:0; color:inherit; padding:0; border-radius:3px; outline:none; }
 .missing-ending .ending-spaces { display:none; }
-.reading-word.missing-ending:is(:hover,:focus-visible,.is-selected,.is-spoken) { background:#fff0cd; outline:2px solid #b48033; outline-offset:2px; }
-.missing-ending:is(:hover,:focus-visible,.is-selected,.is-spoken) .ending-spaces { display:inline; }
-.reading-word.is-spoken:not(.missing-ending) { outline:2px solid var(--accent); outline-offset:2px; }
+.missing-ending:is(:hover,:focus-visible,.is-selected) .ending-spaces { display:inline; }
+.reading-passage :is(.reading-token.is-spoken,.reading-word:is(:hover,:focus-visible,.is-selected,.is-spoken)) { background:#fff0cd; outline:2px solid var(--accent); outline-offset:2px; border-radius:3px; }
 .saved-practices { display:flex; flex-direction:column; gap:12px; }
 .saved-practice { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px; background:white; border:1px solid var(--line); border-radius:12px; padding:20px; }
 .saved-practice h4 { margin:0 0 8px; }.saved-practice p { margin:0; color:var(--muted); font-size:14px; }
@@ -26,3 +30,7 @@
   .exercise-player .reading-passage { font-size:18px; }
   .saved-practice { padding:16px; }
 }
+
+.practice-destinations { display:flex; flex-wrap:wrap; gap:12px 24px; border:1px solid var(--line); border-radius:12px; padding:16px; margin:16px 0; }
+.practice-destinations label { display:flex; align-items:center; gap:8px; cursor:pointer; }
+.practice-destinations input { width:auto; accent-color:var(--accent); }

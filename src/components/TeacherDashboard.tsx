@@ -15,6 +15,7 @@ import {
   type TeacherClass,
 } from "../lib/classes";
 import { Brand } from "./Brand";
+import { TeacherExercises } from "./TeacherExercises";
 import { ClassWorkspace } from "./ClassWorkspace";
 import { summarizeReading, useReadingOverview } from "../lib/reading-overview";
 
@@ -64,6 +65,8 @@ function getClassError(
 }
 
 export function TeacherDashboard({ client, user }: TeacherDashboardProps) {
+  const [page, setPage] = useState<"classes" | "practices">("classes");
+  const practicesHeading = useRef<HTMLHeadingElement>(null);
   const [classes, setClasses] = useState<TeacherClass[]>([]);
   const [loadingClasses, setLoadingClasses] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -114,6 +117,10 @@ export function TeacherDashboard({ client, user }: TeacherDashboardProps) {
   }, []);
 
   useEffect(() => {
+    if (page === "practices") {
+      practicesHeading.current?.focus();
+      return;
+    }
     if (selectedClass) {
       workspaceHeading.current?.focus();
       return;
@@ -123,7 +130,7 @@ export function TeacherDashboard({ client, user }: TeacherDashboardProps) {
       menuHeading.current?.focus();
       returningToMenu.current = false;
     }
-  }, [selectedClass]);
+  }, [selectedClass, page]);
 
   function openCreateDialog() {
     if (openingClassId !== null) {
@@ -222,6 +229,7 @@ export function TeacherDashboard({ client, user }: TeacherDashboardProps) {
       ),
     );
     setSelectedClass(openedClass);
+    setPage("classes");
     setClock(Date.now());
     setOpeningClassId(null);
   }
@@ -244,6 +252,7 @@ export function TeacherDashboard({ client, user }: TeacherDashboardProps) {
 
   function handleBackToClasses() {
     returningToMenu.current = true;
+    setPage("classes");
     setActionError(null);
     setSelectedClass(null);
     overview.refresh();
@@ -274,8 +283,13 @@ export function TeacherDashboard({ client, user }: TeacherDashboardProps) {
         </div>
       </nav>
 
-      <aside className="app-sidebar" aria-label="Workspace navigation"><button className="is-active" onClick={handleBackToClasses}><img src="/design/classes.svg" alt=""/>My Classrooms</button><a href="/"><img src="/design/dashboard.svg" alt=""/>About Dot Reading</a><div className="sidebar-help"><strong>Make reading click</strong><p>Open a class to invite students and assign a word quest.</p></div></aside>
-      {selectedClass ? (
+      <aside className="app-sidebar" aria-label="Workspace navigation"><button className={page === "classes" ? "is-active" : ""} aria-current={page === "classes" ? "page" : undefined} onClick={handleBackToClasses}><img src="/design/classes.svg" alt=""/>My Classrooms</button><button className={page === "practices" ? "is-active" : ""} aria-current={page === "practices" ? "page" : undefined} onClick={() => { setPage("practices"); setSelectedClass(null); }}><img src="/design/exercise.svg" alt=""/>My Practices</button><a href="/"><img src="/design/dashboard.svg" alt=""/>About Dot Reading</a><div className="sidebar-help"><strong>Make reading click</strong><p>Invite students in My Classrooms and share word quests from My Practices.</p></div></aside>
+      {page === "practices" ? (
+        <section className="class-workspace" aria-labelledby="practices-heading">
+          <h1 ref={practicesHeading} id="practices-heading" tabIndex={-1}>My Practices</h1>
+          {loadingClasses ? <p role="status">Loading classrooms...</p> : loadError ? <div role="alert"><p>{loadError}</p><button className="secondary-button" onClick={loadClasses}>Try again</button></div> : <TeacherExercises client={client} classes={classes}/>}
+        </section>
+      ) : selectedClass ? (
         <section className="class-workspace" aria-labelledby="class-heading">
           <button
             className="back-button"
@@ -289,12 +303,12 @@ export function TeacherDashboard({ client, user }: TeacherDashboardProps) {
             {selectedClass.name}
           </h1>
           <p>
-            Create reading practices, assign them to your class, and support your students.
+            Manage your students and follow their reading progress.
           </p>
           <time dateTime={selectedClass.last_accessed_at}>
             Last accessed: {formatRelativeTime(selectedClass.last_accessed_at, clock)}
           </time>
-          <ClassWorkspace key={selectedClass.id} client={client} classId={selectedClass.id} />
+          <ClassWorkspace key={selectedClass.id} client={client} classId={selectedClass.id} onOpenPractices={() => { setPage("practices"); setSelectedClass(null); }} />
           {actionError && (
             <p className="error-message workspace-message" aria-live="polite">
               {actionError}

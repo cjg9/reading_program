@@ -415,3 +415,7 @@ enabled = true
 [functions.send-class-invitation]
 # The handler validates the bearer token against Supabase Auth before any action.
 verify_jwt = false
+
+[functions.read-aloud]
+# The handler validates the user with Supabase Auth and a server-side trial allowlist.
+verify_jwt = false

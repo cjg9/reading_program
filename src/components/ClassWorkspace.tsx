@@ -1,13 +1,12 @@
 import {useRef, useState, type KeyboardEvent} from "react";
 import type {SupabaseClient} from "@supabase/supabase-js";
 import {ClassPeople} from "./ClassPeople";
-import {TeacherExercises} from "./TeacherExercises";
 import {ClassInsights} from "./ClassInsights";
 
-const sections = ["Overview", "Students", "Practices", "Statistics"] as const;
+const sections = ["Overview", "Students", "Statistics"] as const;
 type Section = typeof sections[number];
 
-export function ClassWorkspace({client, classId}: {client: SupabaseClient; classId: number}) {
+export function ClassWorkspace({client, classId, onOpenPractices}: {client: SupabaseClient; classId: number; onOpenPractices: () => void}) {
   const [tab, setTab] = useState<Section>("Overview");
   const buttons = useRef<Array<HTMLButtonElement | null>>([]);
 
@@ -41,17 +40,14 @@ export function ClassWorkspace({client, classId}: {client: SupabaseClient; class
         <p>Invite your students, share a word quest, and follow their progress.</p>
         <div className="overview-grid">
           <button onClick={() => setTab("Students")}><img src="/design/users.svg" alt=""/><strong>Manage students</strong><span>Send invitations and manage your class roster.</span></button>
-          <button onClick={() => setTab("Practices")}><img src="/design/exercise.svg" alt=""/><strong>Assign a reading practice</strong><span>Customize a library passage or create your own.</span></button>
+          <button onClick={onOpenPractices}><img src="/design/exercise.svg" alt=""/><strong>Open My Practices</strong><span>Create practices and distribute them across your classrooms.</span></button>
           <button onClick={() => setTab("Statistics")}><img src="/design/dashboard.svg" alt=""/><strong>See class progress</strong><span>Review completed activities and participation.</span></button>
         </div>
       </div>
     </section>
-    {/* Preserve invitation drafts; practice drafts are discarded when their section closes. */}
+    {/* Preserve invitation drafts when switching class sections. */}
     <section role="tabpanel" id="class-panel-Students" aria-labelledby="class-tab-Students" hidden={tab !== "Students"} tabIndex={0}>
       <ClassPeople client={client} classId={classId} active={tab === "Students"}/>
-    </section>
-    <section role="tabpanel" id="class-panel-Practices" aria-labelledby="class-tab-Practices" hidden={tab !== "Practices"} tabIndex={0}>
-      <TeacherExercises client={client} classId={classId} active={tab === "Practices"}/>
     </section>
     <section role="tabpanel" id="class-panel-Statistics" aria-labelledby="class-tab-Statistics" hidden={tab !== "Statistics"} tabIndex={0}>
       {tab === "Statistics" && <ClassInsights client={client} classId={classId}/>}

@@ -1,5 +1,5 @@
 import {describe,expect,it} from "vitest";
-import {buildChallenges,exerciseChallenges,completedChallenges,correctAnswer,splitPassage,validateExercise,passageLibrary,type Strategy} from "./exercises";
+import {buildChallenges,exerciseChallenges,completedChallenges,correctAnswer,splitPassage,validateExercise,passageLibrary,passageSentences,type Strategy} from "./exercises";
 import {exercisePresets,dogPassage} from "./exercise-presets";
 describe("reading games",()=>{
   it("groups presets and customized copies under their unchanged original passage",()=>{
@@ -17,13 +17,28 @@ describe("reading games",()=>{
     expect(challenges.map(c=>c.word)).toContain("attentive");
     expect(challenges.map(c=>c.word)).toContain("chaos");
   });
-  it("selects upside-down target words across the passage regardless of legacy sentence ranges",()=>{
-    const passage='Dr. Smith enjoys reading. "Dogs are attentive!"\n\nThey bring chaos. We keep watching.';
-    const c={...exercisePresets[0].content,passage,strategy:"upside" as const,targetWords:["reading","attentive","watching"],sentenceNumbers:[2]};
-    expect(buildChallenges(c).map(ch=>ch.word)).toEqual(["reading","attentive","watching"]);
-    expect(buildChallenges(c).every(ch=>correctAnswer(splitPassage(passage)[ch.index],ch.word))).toBe(true);
-    const assigned={...c,challenges:buildChallenges(c).slice(1,2)};
+  it("flips every word of one complete sentence in each paragraph",()=>{
+    const passage='Careful readers enjoy a long story together. Dogs play!\n\nThey bring chaos. We keep watching outside.';
+    const c={...exercisePresets[0].content,passage,strategy:"upside" as const,targetWords:["reading"],sentenceNumbers:[2]};
+    const challenges=buildChallenges(c);
+    expect(challenges.map(ch=>ch.word)).toEqual(["dogs","play","they","bring","chaos"]);
+    const groups=new Set(challenges.map(ch=>ch.sentenceStart));
+    expect(groups.size).toBe(2);
+    expect(challenges.every(ch=>correctAnswer(splitPassage(passage)[ch.index],ch.word))).toBe(true);
+    const assigned={...c,challenges:challenges.slice(1,2)};
     expect(exerciseChallenges(assigned)).toEqual(assigned.challenges);
+  });
+  it("keeps quoted sentence punctuation and CRLF paragraph boundaries in sentence ranges",()=>{
+    const passage='The children play. "Dogs run!"\r\n\r\nBirds sing softly. They fly.';
+    const tokens=splitPassage(passage);
+    const sentences=passageSentences(passage);
+    expect(sentences.map(s=>tokens.slice(s.start,s.end+1).join(""))).toEqual(['The children play.','"Dogs run!"','Birds sing softly.','They fly.']);
+    expect(sentences.map(s=>s.paragraph)).toEqual([0,0,1,1]);
+  });
+  it("rejects oversized sentence games rather than flipping partial sentences",()=>{
+    const content={...exercisePresets[0].content,strategy:"upside" as const,passage:Array.from({length:41},()=>"Dogs run.").join("\n\n")};
+    expect(buildChallenges(content)).toHaveLength(82);
+    expect(validateExercise(content)).toContain("more than 40 puzzle words");
   });
   it("uses saved challenges for assigned work and progress counts",()=>{
     const content=exercisePresets[0].content;
