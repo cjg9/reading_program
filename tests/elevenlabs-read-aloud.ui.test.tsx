@@ -3,7 +3,7 @@ import {act,cleanup,fireEvent,render,screen,waitFor} from "@testing-library/reac
 import {afterEach,beforeEach,expect,it,vi} from "vitest";
 import {ElevenLabsReadAloud} from "../src/components/ElevenLabsReadAloud";
 import {ReadAloud} from "../src/components/ReadAloud";
-import {requestNarration,timedWords,type Narration} from "../src/lib/narration";
+import {requestNarration,timedWords,narrationSentences,type Narration} from "../src/lib/narration";
 
 vi.mock("../src/lib/narration",async importOriginal=>({...await importOriginal<object>(),requestNarration:vi.fn()}));
 vi.mock("../src/lib/supabase",()=>({supabase:null}));
@@ -100,4 +100,17 @@ it("maps Unicode character offsets and refuses misaligned or invalid timestamps"
   expect(()=>timedWords(parts,recording("different").alignment)).toThrow(/matched/);
   const broken=recording();broken.alignment.character_start_times_seconds[0]=-1;
   expect(()=>timedWords(parts,broken.alignment)).toThrow(/timings/);
+});
+
+it("reads one sentence at a time and preserves global word indexes",async()=>{
+  const sentences=[{text:'Hello.',index:0},{text:' ',index:1},{text:'Welcome.',index:2}];
+  vi.mocked(requestNarration).mockImplementation(async text=>recording(text));
+  const onWord=vi.fn();render(<ElevenLabsReadAloud parts={sentences} onWord={onWord}/>);
+  fireEvent.click(screen.getByRole('button',{name:'Read aloud'}));
+  await screen.findByRole('button',{name:'Pause reading'});
+  expect(requestNarration).toHaveBeenCalledWith('Hello.',expect.any(AbortSignal));
+  await act(async()=>FakeAudio.instances[0].onended?.());
+  expect(requestNarration).toHaveBeenCalledWith('Welcome.',expect.any(AbortSignal));
+  expect(onWord).toHaveBeenLastCalledWith(2);
+  expect(narrationSentences(sentences).map(parts=>parts.map(part=>part.text).join(''))).toEqual(['Hello.','Welcome.']);
 });

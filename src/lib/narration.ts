@@ -9,6 +9,21 @@ export interface Alignment {
 export interface Narration {audio_base64:string;alignment:Alignment}
 export interface TimedWord {index:number;start:number;end:number}
 
+export function narrationSentences(parts:SpokenPart[]):SpokenPart[][] {
+  let offset=0;
+  const ranges=parts.map(part=>{const start=offset;offset+=part.text.length;return {part,start,end:offset};});
+  const text=parts.map(part=>part.text).join("");
+  return Array.from(new Intl.Segmenter("en",{granularity:"sentence"}).segment(text)).flatMap(segment=>{
+    if(!segment.segment.trim())return [];
+    const start=segment.index+segment.segment.search(/\S/);
+    const end=segment.index+segment.segment.trimEnd().length;
+    const sentence=ranges.filter(range=>range.end>start&&range.start<end).map(range=>({
+      index:range.part.index,text:range.part.text.slice(Math.max(0,start-range.start),Math.min(range.part.text.length,end-range.start)),
+    }));
+    return [sentence];
+  });
+}
+
 // Use original-text alignment, never normalized text offsets (e.g. "12" → "twelve").
 export function timedWords(parts:SpokenPart[],alignment:Alignment):TimedWord[] {
   const text=parts.map(part=>part.text).join("");
@@ -35,8 +50,19 @@ export function timedWords(parts:SpokenPart[],alignment:Alignment):TimedWord[] {
 
 export async function requestNarration(text:string,signal:AbortSignal):Promise<Narration> {
   if(!supabase)throw new Error("Sign in to try the ElevenLabs voice.");
+  for(let attempt=0;attempt<35;attempt++){
+  if(signal.aborted)throw new DOMException("Cancelled","AbortError");
   const {data,error}=await supabase.functions.invoke("read-aloud",{body:{text},signal});
   if(error){
+    if(error.context instanceof Response && error.context.status===409 && attempt<34){
+      await new Promise<void>((resolve,reject)=>{
+        const cancel=()=>{clearTimeout(timer);reject(new DOMException("Cancelled","AbortError"));};
+        const timer=setTimeout(()=>{signal.removeEventListener("abort",cancel);resolve();},2000);
+        signal.addEventListener("abort",cancel,{once:true});
+        if(signal.aborted)cancel();
+      });
+      continue;
+    }
     let message="ElevenLabs is unavailable. Try again or select the browser voice.";
     if(error.context instanceof Response){
       const body=await error.context.json().catch(()=>null);
@@ -46,4 +72,6 @@ export async function requestNarration(text:string,signal:AbortSignal):Promise<N
   }
   if(!data?.audio_base64 || !data?.alignment)throw new Error("The recording is incomplete. Try the browser voice.");
   return data;
+  }
+  throw new Error("The recording is still being prepared. Please try again.");
 }

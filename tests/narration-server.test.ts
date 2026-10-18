@@ -1,15 +1,20 @@
 import {expect,it,vi} from "vitest";
-import {createNarrationHandler} from "../supabase/functions/read-aloud/handler";
+import {createNarrationHandler,type Reservation,type Recording} from "../supabase/functions/read-aloud/handler";
 
 function setup(overrides:Record<string,string|undefined>={}){
   const config:Record<string,string|undefined>={ELEVENLABS_API_KEY:"test-secret",ELEVENLABS_VOICE_ID:"voice-id",ELEVENLABS_TRIAL_USER_IDS:"teacher-id",...overrides};
   const authenticate=vi.fn(async()=>({id:"teacher-id",confirmed:true}));
-  const fetch=vi.fn(async()=>new Response(JSON.stringify({audio_base64:"YXVkaW8=",alignment:{characters:["H"],character_start_times_seconds:[0],character_end_times_seconds:[0.1]}})));
-  const handler=createNarrationHandler({env:name=>config[name],authenticate,fetch});
+  const fetch=vi.fn(async(_url:string|URL|Request,options?:RequestInit)=>{
+    const text=JSON.parse(options?.body as string).text as string;
+    const characters=Array.from(text);
+    return new Response(JSON.stringify({audio_base64:"YXVkaW8=",alignment:{characters,character_start_times_seconds:characters.map((_,i)=>i/10),character_end_times_seconds:characters.map((_,i)=>(i+1)/10)}}));
+  });
+  const store={reserve:vi.fn(async():Promise<Reservation>=>({status:"generate",lease:"lease-id"})),read:vi.fn(async():Promise<Recording>=>({audio_base64:"saved",alignment:{}})),save:vi.fn(),fail:vi.fn()};
+  const handler=createNarrationHandler({env:name=>config[name],authenticate,fetch,store});
   const request=(body:unknown={text:"Hello"},token="valid")=>new Request("https://example.test/read-aloud",{
     method:"POST",headers:token?{Authorization:`Bearer ${token}`}:{},body:JSON.stringify(body),
   });
-  return {handler,authenticate,fetch,request};
+  return {handler,authenticate,fetch,request,store};
 }
 it("rejects unauthenticated and unconfirmed callers before spending credits",async()=>{
   const {handler,authenticate,fetch,request}=setup();
@@ -52,4 +57,48 @@ it("sanitizes provider failures",async()=>{
   const response=await handler(request());
   expect(response.status).toBe(429);
   expect(await response.text()).not.toContain("provider secret details");
+});
+it.each([[402,"paid plan"],[401,"permissions"],[403,"permissions"]])("explains provider configuration failure %s without exposing details",async(status,message)=>{
+  const {handler,fetch,request,store}=setup();
+  fetch.mockResolvedValue(new Response("private provider details",{status:Number(status)}));
+  const response=await handler(request());
+  const body=await response.text();
+  expect(response.status).toBe(502);
+  expect(body).toContain(message);
+  expect(body).not.toContain("private provider details");
+  expect(store.fail).toHaveBeenCalled();
+  expect(store.save).not.toHaveBeenCalled();
+});
+
+it("serves saved audio without calling ElevenLabs",async()=>{
+  const {handler,fetch,request,store}=setup();
+  store.reserve.mockResolvedValue({status:"ready",path:"private-recording.json"});
+  const response=await handler(request());
+  expect(response.status).toBe(200);
+  expect(await response.json()).toMatchObject({audio_base64:"saved"});
+  expect(fetch).not.toHaveBeenCalled();
+});
+it.each([['pending',409],['limited',429]] as const)("does not generate when reservation is %s",async(status,code)=>{
+  const {handler,fetch,request,store}=setup();store.reserve.mockResolvedValue({status});
+  expect((await handler(request())).status).toBe(code);
+  expect(fetch).not.toHaveBeenCalled();
+});
+it("persists audio and timing before reporting success",async()=>{
+  const {handler,request,store}=setup();
+  expect((await handler(request())).status).toBe(200);
+  expect(store.save).toHaveBeenCalledWith(expect.stringMatching(/^[a-f0-9]{64}$/),"lease-id",expect.objectContaining({audio_base64:"YXVkaW8="}));
+});
+it("uses a different cache entry when text or voice changes",async()=>{
+  const first=setup();await first.handler(first.request());
+  const second=setup({ELEVENLABS_VOICE_ID:"other-voice"});await second.handler(second.request());
+  expect(first.store.reserve.mock.calls[0][0]).not.toBe(second.store.reserve.mock.calls[0][0]);
+  await first.handler(first.request({text:"Changed sentence."}));
+  expect(first.store.reserve.mock.calls[0][0]).not.toBe(first.store.reserve.mock.calls[1][0]);
+});
+
+it("does not persist misaligned recordings and releases the failed lease",async()=>{
+  const {handler,fetch,request,store}=setup();
+  fetch.mockResolvedValue(new Response(JSON.stringify({audio_base64:'invalid',alignment:{characters:['wrong']}})));
+  expect((await handler(request())).status).toBe(503);
+  expect(store.save).not.toHaveBeenCalled();expect(store.fail).toHaveBeenCalled();
 });

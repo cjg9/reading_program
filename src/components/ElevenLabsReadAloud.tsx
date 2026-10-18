@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState} from "react";
-import {requestNarration,timedWords,type Narration} from "../lib/narration";
+import {requestNarration,timedWords,narrationSentences,type Narration} from "../lib/narration";
 import type {ReadAloudProps} from "./ReadAloud";
 
 export function ElevenLabsReadAloud({parts,onWord,sentence}:ReadAloudProps){
@@ -35,19 +35,34 @@ export function ElevenLabsReadAloud({parts,onWord,sentence}:ReadAloudProps){
   useEffect(()=>{if(sentence)void start(sentence.parts);},[sentence]);
   async function start(readingParts=parts){
     stop();setError("");
-    const text=readingParts.map(part=>part.text).join("");
-    if(!text.trim())return;
-    if(text.length>5000){setError("For this trial, choose a passage under 5,000 characters or use the browser voice.");return;}
+    const sentences=narrationSentences(readingParts);
+    if(!sentences.length)return;
+    if(sentences.some(parts=>parts.reduce((length,part)=>length+part.text.length,0)>5000)){
+      setError("A sentence is too long for this voice. Use the browser voice.");return;
+    }
     const id=run.current;
-    setStatus("loading");
     const controller=new AbortController();request.current=controller;
-    try{
-      let recording=cache.current.get(text);
-      if(!recording){
-        recording=await requestNarration(text,controller.signal);
-        if(run.current!==id)return;
+    const prepared=new Map<number,Promise<Narration>>();
+    const prepare=(position:number)=>{
+      let pending=prepared.get(position);
+      if(!pending){
+        const text=sentences[position].map(part=>part.text).join("");
+        const saved=cache.current.get(text);
+        pending=saved?Promise.resolve(saved):requestNarration(text,controller.signal);
+        prepared.set(position,pending);
       }
-      const words=timedWords(readingParts,recording.alignment);
+      return pending;
+    };
+    async function playSentence(position:number):Promise<void>{
+    if(run.current!==id)return;
+    const sentenceParts=sentences[position];
+    if(!sentenceParts){stop();return;}
+    const text=sentenceParts.map(part=>part.text).join("");
+    setStatus("loading");
+    try{
+      const recording=await prepare(position);
+      if(run.current!==id)return;
+      const words=timedWords(sentenceParts,recording.alignment);
       if(!cache.current.has(text)){
         if(cache.current.size>=4)cache.current.delete(cache.current.keys().next().value!);
         cache.current.set(text,recording);
@@ -63,17 +78,33 @@ export function ElevenLabsReadAloud({parts,onWord,sentence}:ReadAloudProps){
         if(word!==highlighted){highlighted=word;onWordRef.current?.(word);}
         frame.current=requestAnimationFrame(track);
       };
-      player.onended=()=>{if(run.current===id)stop();};
+      player.onended=()=>{
+        if(run.current!==id)return;
+        if(frame.current!==null)cancelAnimationFrame(frame.current);
+        frame.current=null;onWordRef.current?.(null);
+        player.onended=null;player.onpause=null;player.onerror=null;player.onplaying=null;
+        player.removeAttribute("src");player.load();audio.current=null;
+        if(objectURL.current)URL.revokeObjectURL(objectURL.current);
+        objectURL.current=null;
+        void playSentence(position+1);
+      };
       player.onerror=()=>{if(run.current===id){stop();setError("This recording could not play. Try again or use the browser voice.");}};
       player.onpause=()=>{if(run.current===id)setStatus("paused");};
       player.onplaying=()=>{if(run.current===id)setStatus("reading");};
       track();
-      try{await player.play();}
+      try{
+        await player.play();
+        // Fetch just one sentence ahead to reduce gaps without generating the
+        // rest of a passage that the student may never listen to.
+        if(run.current===id&&position+1<sentences.length)void prepare(position+1).catch(()=>{});
+      }
       catch{if(run.current===id){setStatus("paused");setError("Your browser paused audio. Select Resume reading to play it.");}}
     }catch(cause){
       if(run.current!==id)return;
       stop();setError(cause instanceof Error?cause.message:"ElevenLabs is unavailable. Try the browser voice.");
     }
+    }
+    await playSentence(0);
   }
   async function toggle(){
     if(status==="idle"){await start();return;}
