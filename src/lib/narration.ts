@@ -1,5 +1,6 @@
 import {supabase} from "./supabase";
 import type {SpokenPart} from "../components/ReadAloud";
+import type {SupabaseClient} from "@supabase/supabase-js";
 
 export interface Alignment {
   characters:string[];
@@ -7,6 +8,7 @@ export interface Alignment {
   character_end_times_seconds:number[];
 }
 export interface Narration {audio_base64:string;alignment:Alignment}
+export interface PublishedNarration extends Narration {parts:SpokenPart[]}
 export interface TimedWord {index:number;start:number;end:number}
 
 export function narrationSentences(parts:SpokenPart[]):SpokenPart[][] {
@@ -48,11 +50,10 @@ export function timedWords(parts:SpokenPart[],alignment:Alignment):TimedWord[] {
   });
 }
 
-export async function requestNarration(text:string,signal:AbortSignal):Promise<Narration> {
-  if(!supabase)throw new Error("Sign in to try the ElevenLabs voice.");
+async function invokeNarration(client:SupabaseClient,body:object,signal:AbortSignal) {
   for(let attempt=0;attempt<35;attempt++){
   if(signal.aborted)throw new DOMException("Cancelled","AbortError");
-  const {data,error}=await supabase.functions.invoke("read-aloud",{body:{text},signal});
+  const {data,error}=await client.functions.invoke("read-aloud",{body,signal});
   if(error){
     if(error.context instanceof Response && error.context.status===409 && attempt<34){
       await new Promise<void>((resolve,reject)=>{
@@ -70,8 +71,18 @@ export async function requestNarration(text:string,signal:AbortSignal):Promise<N
     }
     throw new Error(message);
   }
-  if(!data?.audio_base64 || !data?.alignment)throw new Error("The recording is incomplete. Try the browser voice.");
   return data;
   }
   throw new Error("The recording is still being prepared. Please try again.");
+}
+export async function requestPublishedNarration(assignmentId:string,signal:AbortSignal):Promise<PublishedNarration>{
+  if(!supabase)throw new Error("Sign in to listen.");
+  const data=await invokeNarration(supabase,{action:"play",assignmentId},signal);
+  if(!data?.audio_base64||!data?.alignment||!Array.isArray(data?.parts))throw new Error("The saved recording is incomplete. Ask your teacher for help.");
+  return data;
+}
+export async function prepareNarration(client:SupabaseClient,exerciseId:string):Promise<string>{
+  const data=await invokeNarration(client,{action:"prepare",exerciseId},new AbortController().signal);
+  if(typeof data?.publicationId!=="string")throw new Error("The recording was not saved. Please try publishing again.");
+  return data.publicationId;
 }

@@ -21,13 +21,13 @@ export function speechChunks(parts:SpokenPart[]) {
   flush();return chunks;
 }
 
-export interface ReadAloudProps {parts:SpokenPart[];onWord?:(index:number|null)=>void;sentence?:{parts:SpokenPart[];requestId:number}}
+export interface ReadAloudProps {parts:SpokenPart[];assignmentId?:string;onWord?:(index:number|null)=>void;sentence?:{parts:SpokenPart[];requestId:number}}
 export function ReadAloud(props:ReadAloudProps){
-  const trial=import.meta.env.VITE_ELEVENLABS_TRIAL==="true";
-  const [provider,setProvider]=useState("browser");
+  const trial=Boolean(props.assignmentId);
+  const [provider,setProvider]=useState(trial?"elevenlabs":"browser");
   return <>
     {trial&&<div className="read-aloud"><label>Narrator <select value={provider} onChange={event=>setProvider(event.target.value)}>
-      <option value="browser">Browser voice</option><option value="elevenlabs">ElevenLabs (trial)</option>
+      <option value="browser">Browser voice</option><option value="elevenlabs">Saved narration</option>
     </select></label></div>}
     {trial&&provider==="elevenlabs"?<ElevenLabsReadAloud {...props}/>:<BrowserReadAloud {...props}/>}
   </>;

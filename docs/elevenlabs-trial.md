@@ -1,118 +1,70 @@
-# ElevenLabs read-aloud trial
+# Published exercise narration
 
-The trial adds a Narrator selector alongside existing reading controls. Browser
-voice remains the default. Choose ElevenLabs (trial), then Read aloud. The target
-trial voice is Brian — Deep, Resonant and Comforting (public voice ID:
-`nPczCjzI2devNBz1zQrb`). Live playback, pause/resume, and word tracking were
-verified with the owner's account. Clamon (`cdnpdcqt2HW1XtKv2f3V`) remains the
-preferred voice for a paid trial; its API request was blocked by the free plan.
-Durable reuse was verified by replaying the start of the same practice in a
-fresh browser page: database totals stayed at 3 saved recordings, 5 generation
-attempts, and 546 reserved characters before and after replay. Attempts include
-the two rejected Clamon requests; reserved characters are not provider billing.
-Default voices are temporary: ElevenLabs documents their retirement on
-December 31, 2026. Select a supported voice before a broader rollout.
+Teachers prepare narration when they **Assign to selected classes** (publish),
+not when students press Play. Saving or previewing a draft does not spend credits.
+The server loads the owned exercise snapshot, generates one complete puzzle-text
+recording with character timestamps, saves it privately, and returns a publication
+ID. The database refuses assignment without a ready publication matching the exact
+current exercise content. A failed generation leaves the saved draft unpublished.
 
-## Activation
+Students and teachers play by assignment ID. The function verifies the caller's
+current assignment access through Supabase RLS and returns the pinned recording.
+Playback cannot call ElevenLabs, repair a missing object by generating again, or
+submit arbitrary narration text. All students share the same saved audio. They can
+pause/resume, change speed, choose a sentence, or seek to any point using the slider.
+Word tracking uses the recording's original character timings.
 
-1. Create an ElevenLabs account with API credits. In Developers → API Keys, create
-   a dedicated key with Text to Speech access and a small credit quota for this
-   trial. Keep the key out of chat, source control, and all `VITE_` variables.
-2. Audition a warm American-English voice in ElevenLabs and copy its voice ID.
-   Pick one available to your account and compatible with Multilingual v2.
-   Voice Library voices, including Clamon, require a paid plan for API use even
-   when their website preview works. See the [Voice Library documentation](https://elevenlabs.io/docs/eleven-creative/voices/voice-library).
-   On a free account, verify an API-eligible default voice is available before
-   testing. [Default voice availability and retirement](https://elevenlabs.io/docs/help-center/product/voices/my-voices/what-are-default-voices)
-   depend on the account; do not assume new accounts have access.
-3. In Supabase Dashboard → Edge Functions → Secrets, add:
+Puzzle transformations remain fixed in the recording, including blanks and missing
+endings. Solving words does not generate new audio. Sentence replay seeks within the
+saved puzzle narration; it does not replace puzzle wording with the solved answers.
+Browser voice remains selectable and can read the student's current visible text.
 
-   | Secret | Value |
-   | --- | --- |
-   | `ELEVENLABS_API_KEY` | The dedicated ElevenLabs key |
-   | `ELEVENLABS_VOICE_ID` | Your selected voice ID |
-   | `ELEVENLABS_TRIAL_USER_IDS` | Comma-separated Supabase Auth user UUIDs allowed to test |
+## Versions and access
 
-   Copy the UUID for your confirmed test account from Supabase Authentication →
-   Users. An empty allowlist denies everyone. Optionally set `ELEVENLABS_MODEL_ID`
-   to `eleven_flash_v2_5` or `eleven_turbo_v2_5` to audition a cheaper model.
-   The default remains `eleven_multilingual_v2` until the comparison is complete.
-4. Apply `20261018100000_narration_cache.sql`, then deploy the Edge Function to the
-   linked Supabase project. Review other pending migrations before a general push:
+- Re-publishing an unchanged exercise to other classes reuses its publication.
+- Editing creates a new snapshot; old assignments and their audio remain unchanged.
+- Re-assigning an already active exercise preserves its previous version. Unassign
+  it and assign again to distribute an edited version.
+- Older assignments without audio retain browser narration. Re-assigning the same
+  unchanged saved exercise attaches prepared audio without resetting student work.
+- Deleting a saved practice does not delete narration attached to old assignments.
+- Publication metadata and audio are private; only the server's service role can
+  access them directly. The client cannot list recordings or reserve generation.
 
-   ```powershell
-   npx.cmd supabase migration list
-   npx.cmd supabase db push
-   npx.cmd supabase functions deploy read-aloud
-   ```
+## Configuration and deployment
 
-   The committed config disables the gateway's legacy JWT verification. The
-   function itself verifies the bearer token with Supabase Auth, requires a
-   confirmed email, and checks the trial allowlist before calling ElevenLabs.
-5. Set `VITE_ELEVENLABS_TRIAL=true` in `.env.local` for local testing, or in the
-   Vercel preview environment for a hosted trial, then restart/rebuild the frontend.
-   Existing Supabase URL and publishable-key configuration must be present.
-6. Sign in as an allowed account, open a practice, choose ElevenLabs (trial), and
-   press Read aloud. To disable the trial, remove the flag and rebuild; clearing
-   the server allowlist immediately blocks new generation requests.
+Apply `20261018100000_narration_cache.sql` and
+`20261019090000_published_narration.sql`, then deploy `read-aloud` and the frontend.
+The gateway JWT check is disabled for modern Supabase keys; the handler explicitly
+checks Supabase Auth, confirmed email, ownership for generation, and assignment RLS
+for playback. `ELEVENLABS_TRIAL_USER_IDS` and `VITE_ELEVENLABS_TRIAL` no longer gate
+this production workflow. No API key belongs in any `VITE_` variable.
 
-## Behavior and limits
+Server secrets: `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID`, and optional
+`ELEVENLABS_MODEL_ID` (default `eleven_multilingual_v2`). Current voice: Brian,
+`nPczCjzI2devNBz1zQrb`. Preferred paid-plan voice: Clamon,
+`cdnpdcqt2HW1XtKv2f3V`. [Voice Library voices require paid API access](https://elevenlabs.io/docs/eleven-creative/voices/voice-library).
+[Default voices retire December 31, 2026](https://elevenlabs.io/docs/help-center/product/voices/my-voices/what-are-default-voices);
+choose a supported voice before that date. Existing recordings remain stored.
 
-- One server-configured voice using `eleven_multilingual_v2`, neutral style, and
-  sentence-level context. Unsolved ending words remain truncated; no answer text is
-  added. Corrected sentences use the existing answer-checking flow.
-- Character timestamps from the original text drive word highlighting using the
-  audio clock. Mismatched alignment is rejected rather than highlighting guesses.
-- Pause/resume, stop, pitch-preserving speed controls, corrected-sentence replay,
-  and cancellation on passage changes, leaving the view, or hiding the tab.
-- Sentence audio and original-text timing are stored together in the private
-  `reading-narration` Supabase Storage bucket. A SHA-256 cache key covers exact
-  spoken text, provider, voice, model, audio format, and voice settings. Identical
-  requests reuse audio across devices and allowed test users. Indexes are mapped
-  back to the current passage on the client, never stored as student progress.
-- The server accepts exact text from confirmed, allowlisted test accounts. It
-  returns only the recording for that text and offers no cache-listing endpoint.
-  This remains a restricted trial; general student rollout should derive allowed
-  text from an authorized assignment server-side before removing the allowlist.
-- Original corrected sentences and puzzle sentences have separate cache entries.
-  Only changed sentences need new recordings; replaying a correction reuses its
-  original-sentence recording. Sentences generate on first request, not on every
-  answer or every page load. A small four-entry in-memory cache further reduces
-  downloads but is not the durable cache.
-  During playback, one upcoming sentence is prefetched to reduce pauses. Stopping
-  may therefore leave one newly generated sentence unused; it remains stored for
-  later playback. Cold recordings may still require preparation time.
-- Global monthly cap: **10,000 newly requested characters**. Per-user daily cap:
-  **5,000 characters**. Both reset on UTC calendar boundaries. Adjust the one row
-  in `public.narration_limits` using an admin connection; set either cap to zero
-  to stop new generation while allowing cached playback. These are character
-  limits, not an exact dollar or provider-credit budget. Also set the dedicated
-  ElevenLabs key to 10,000 credits per credit-refresh period. Provider reset dates
-  may differ from the app's UTC month boundary.
-- Reservations are atomic in PostgreSQL. Concurrent requests for the same text
-  wait for one generation instead of creating duplicate requests. Pending jobs
-  have a two-minute lease. Attempts count before contacting ElevenLabs, including
-  failures/timeouts, because provider billing may already have occurred. The
-  client waits up to roughly 68 seconds for another request to finish, then offers
-  retry. Aborting playback cannot guarantee cancellation of provider billing.
-- Storage bundles are private JSON containing base64 MP3 plus timestamps. This
-  avoids a separate timing fetch but has base64 overhead. Storage/egress still
-  cost money; this trial does not add a public CDN or audio retention policy.
-  Missing storage objects fail closed rather than silently spending on regeneration.
-- Passage text is sent to ElevenLabs. Names, account identifiers, and progress
-  records are not included in the provider payload; anything inside the passage
-  itself is included. Use sample passages for the initial trial.
-- Browser voice remains available if the trial is unavailable, lacks credits,
-  or does not sound right. Fallback is explicit so listeners can compare voices.
+## Cost controls and failure behavior
 
-## Trial listening checklist
+The existing hard limits remain 10,000 newly requested characters per UTC calendar
+month globally and 5,000 per teacher per UTC day. A full recording is limited to
+5,000 spoken characters in this initial release. Publication fails clearly when
+these limits are exceeded. No silent browser-only publication occurs.
 
-Test a normal paragraph, a missing-ending passage, numbers/abbreviations, and a
-corrected-sentence replay. Listen for natural pacing, invented endings, and unusual
-stress around fragments. Check highlighting at all three speeds, pause/resume,
-switching narrator, and changing passages while audio is preparing. Audition on
-the actual student devices. Automated tests mock the provider and audio clock;
-they cannot establish how natural the configured voice sounds.
+A private content-addressed cache covers text, voice, model, settings and format.
+Concurrent requests share a reservation, and retries after a successfully stored
+recording reuse it. Failed or timed-out provider attempts count conservatively;
+exactly-once provider billing cannot be guaranteed across network failures before
+storage succeeds. Students never trigger these retries. Repeat listening creates
+storage/network traffic, not ElevenLabs generation charges. Keep a restricted
+provider-key credit cap as an additional limit.
 
-API references: [speech with timestamps](https://elevenlabs.io/docs/api-reference/text-to-speech/convert-with-timestamps/)
-and [API key permissions and credit quotas](https://elevenlabs.io/docs/api-reference/authentication).
+## Verification
+
+Automated coverage checks teacher-only preparation, complete recording reuse,
+playback without generation, arbitrary-text rejection, quota failure, assignment
+membership, publication gating, stale content rejection, snapshot retention,
+word tracking, sentence seeking, pause/resume and cancellation.

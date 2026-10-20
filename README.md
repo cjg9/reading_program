@@ -28,8 +28,8 @@ See [invitation setup and verification](docs/invitations.md) for the Resend,
 Supabase SMTP, Edge Function, and callback settings needed to send invitations.
 See [reading exercises](docs/exercises.md) for the teacher and student flows,
 game rules, and database setup. Class event notifications are not included yet.
-See [ElevenLabs trial setup](docs/elevenlabs-trial.md) to enable AI narration with
-timed word highlighting for selected test accounts.
+See [published narration](docs/elevenlabs-trial.md) for one-time recording at
+publication, saved audio playback, sentence seeking, and timed word highlighting.
 
 ## Product rule: teachers are class moderators
 

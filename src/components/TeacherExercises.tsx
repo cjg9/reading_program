@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { buildChallenges, exerciseChallenges, completedChallenges, strategies, validateExercise, passageLibrary, splitPassage, type Assignment, type Exercise, type ExerciseContent, type ProgressRecord, type Strategy } from "../lib/exercises";
 import { ExercisePlayer } from "./ExercisePlayer";
 import {ReadAloud} from "./ReadAloud";
+import {prepareNarration} from "../lib/narration";
 import type { TeacherClass } from "../lib/classes";
 
 function reveal(node:HTMLElement|null) {node?.focus({preventScroll:true});node?.scrollIntoView?.({block:"start",behavior:window.matchMedia?.("(prefers-reduced-motion: reduce)").matches?"instant":"smooth"});}
@@ -32,12 +33,13 @@ export function TeacherExercises({client,classes}:{client:SupabaseClient;classes
   const [clues,setClues]=useState("");
   const [preview,setPreview]=useState<ExerciseContent|null>(null);
   const [plainPreview,setPlainPreview]=useState(false);
+  const [previewAssignment,setPreviewAssignment]=useState<string|undefined>();
   const editorRef=useRef<HTMLFormElement>(null);
   const previewRef=useRef<HTMLDivElement>(null);
   const editing=Boolean(editor);
   useEffect(()=>{if(editing)reveal(editorRef.current);},[editing]);
   useEffect(()=>{if(preview)reveal(previewRef.current);},[preview]);
-  function showPreview(content:ExerciseContent,plain=false){setPlainPreview(plain);setPreview({...content});}
+  function showPreview(content:ExerciseContent,plain=false,assignmentId?:string){setPreviewAssignment(assignmentId);setPlainPreview(plain);setPreview({...content});}
   const [showLibrary,setShowLibrary]=useState(true);
   const [results,setResults]=useState<string|null>(null);
   const [archiveTarget,setArchiveTarget]=useState<string|null>(null);
@@ -48,7 +50,7 @@ export function TeacherExercises({client,classes}:{client:SupabaseClient;classes
       const classIds=classKey?classKey.split(",").map(Number):[];
       const [l,a,rosters]=await Promise.all([
         client.from("reading_exercises").select("id,teacher_id,preset_key,content").order("created_at",{ascending:true}),
-        classIds.length?client.from("exercise_assignments").select("id,class_id,content,created_at,archived_at").in("class_id",classIds).is("archived_at",null).order("created_at",{ascending:false}):Promise.resolve({data:[],error:null}),
+        classIds.length?client.from("exercise_assignments").select("id,class_id,content,created_at,archived_at,narration_id").in("class_id",classIds).is("archived_at",null).order("created_at",{ascending:false}):Promise.resolve({data:[],error:null}),
         Promise.all(classIds.map(async classId=>{
           const result=await client.rpc("class_roster_named",{p_class_id:classId});
           return {...result,data:(result.data??[]).map((student:Omit<typeof roster[number],"class_id">)=>({...student,class_id:classId}))};
@@ -97,10 +99,14 @@ export function TeacherExercises({client,classes}:{client:SupabaseClient;classes
   async function assign(exercise:Exercise){
     const destinations=classes.filter(c=>selectedClasses.includes(c.id));
     if(busy||!destinations.length)return;setBusy(true);setError("");setNotice("");
+    let publicationId:string;
+    setNotice("Preparing the complete narration before publishing. Please keep this page open.");
+    try{publicationId=await prepareNarration(client,exercise.id);}
+    catch(cause){setNotice("");setError(cause instanceof Error?cause.message:"Narration could not be prepared. The exercise has not been published.");setBusy(false);return;}
     const failed:string[]=[];
     let succeeded=0;
     for(const classroom of destinations){
-      try{const {error:e}=await client.rpc("assign_reading_exercise",{p_class_id:classroom.id,p_exercise_id:exercise.id});if(e)throw e;succeeded++;}
+      try{const {error:e}=await client.rpc("assign_reading_exercise",{p_class_id:classroom.id,p_exercise_id:exercise.id,p_narration_id:publicationId});if(e)throw e;succeeded++;}
       catch{failed.push(classroom.name);}
     }
     await load();
@@ -154,7 +160,7 @@ export function TeacherExercises({client,classes}:{client:SupabaseClient;classes
       {classes.length?<fieldset className="practice-destinations" disabled={busy}><legend>Distribute to classrooms</legend>{classes.map(classroom=><label key={classroom.id}><input type="checkbox" checked={selectedClasses.includes(classroom.id)} onChange={event=>setSelectedClasses(current=>event.target.checked?[...current,classroom.id]:current.filter(id=>id!==classroom.id))}/>{classroom.name}</label>)}</fieldset>:<p>Create a classroom in My Classrooms when you’re ready to distribute practices. You can create and save practices now.</p>}
       {library.some(e=>e.teacher_id)?<div className="saved-practices">{library.filter(e=>e.teacher_id).map(exercise=><article className="saved-practice" key={exercise.id}><div><h4>{exercise.content.title}</h4><p>{strategies[exercise.content.strategy].name} · {exerciseChallenges(exercise.content).length} words to solve</p></div><div className="exercise-actions"><button className="primary-button" disabled={busy||loading||!classes.some(c=>selectedClasses.includes(c.id))} onClick={()=>void assign(exercise)}>{busy?"Assigning…":"Assign to selected classes"}</button><button className="text-button" onClick={()=>{setEditor(null);showPreview(exercise.content);}}>Preview</button><button className="text-button" disabled={busy} onClick={()=>openEditor(exercise,true)}>Edit practice</button><button className="text-button" disabled={busy} onClick={()=>openEditor(exercise)}>Customize a copy</button><button className="text-button danger-button" disabled={busy} onClick={()=>{setDeleteTarget(exercise.id);setError("");}}>Delete practice</button></div>{deleteTarget===exercise.id&&<div className="exercise-confirm"><p>Delete “{exercise.content.title}” from your saved practices? Existing classroom assignments and student work will be kept. This cannot be undone.</p><button className="secondary-button danger-button" disabled={busy} onClick={()=>void deletePractice(exercise)}>{busy?"Deleting…":"Confirm delete"}</button> <button className="text-button" disabled={busy} onClick={()=>setDeleteTarget(null)}>Cancel</button></div>}</article>)}</div>:<p>No saved practices yet. Customize a passage to create your first.</p>}</div>}
     {!loading&&assigned.length>0&&!assigned.some(a=>a.content.title.toLowerCase().includes(filter.toLowerCase()))&&<p>No practices match your search.</p>}
-    {preview&&<div ref={previewRef} tabIndex={-1} className="exercise-preview" aria-label="Practice preview"><button className="text-button" onClick={()=>setPreview(null)}>Close preview</button>{plainPreview?<PlainPassage content={preview}/>:<ExercisePlayer key={JSON.stringify(preview)} content={preview} preview/>}</div>}
+    {preview&&<div ref={previewRef} tabIndex={-1} className="exercise-preview" aria-label="Practice preview"><button className="text-button" onClick={()=>setPreview(null)}>Close preview</button>{plainPreview?<PlainPassage content={preview}/>:<ExercisePlayer key={JSON.stringify(preview)+previewAssignment} content={preview} assignmentId={previewAssignment} preview/>}</div>}
     <h3>Classroom assignments</h3><label className="search-field"><img src="/design/search.svg" alt=""/><span className="sr-only">Filter practices</span><input value={filter} onChange={e=>setFilter(e.target.value)} placeholder="Filter practices..."/></label>{loading?<p role="status">Loading practices...</p>:assigned.length===0?<p>No practices assigned yet. Save a practice, choose classrooms, and assign it above.</p>:
       <div className="exercise-grid assigned-exercises">{assigned.filter(a=>a.content.title.toLowerCase().includes(filter.toLowerCase())).map(a=>{
         const classRoster=roster.filter(s=>s.class_id===a.class_id);
@@ -162,7 +168,7 @@ export function TeacherExercises({client,classes}:{client:SupabaseClient;classes
         return <article className="exercise-card assigned-exercise" key={a.id}><img className="exercise-type-icon" src="/design/exercise.svg" alt=""/><h4>{a.content.title}</h4><p className="eyebrow">{classes.find(c=>c.id===a.class_id)?.name}</p><p>{strategies[a.content.strategy].name}</p>
           <p>{records.filter(p=>p.completed_at).length} of {classRoster.length} students finished</p><div className="exercise-actions">
             <button className="secondary-button" onClick={()=>setResults(results===a.id?null:a.id)}>Student progress</button>
-            <button className="text-button" onClick={()=>showPreview(a.content)}>Preview</button>
+            <button className="text-button" onClick={()=>showPreview(a.content,false,a.narration_id?a.id:undefined)}>Preview</button>
             <button className="text-button danger-button" disabled={busy} onClick={()=>setArchiveTarget(a.id)}>Unassign</button></div>
           {archiveTarget===a.id&&<div className="exercise-confirm"><p>Remove this practice from students’ class page? Their saved work will be retained.</p><button className="secondary-button" disabled={busy} onClick={()=>void unassign(a.id)}>Confirm unassign</button> <button className="text-button" disabled={busy} onClick={()=>setArchiveTarget(null)}>Cancel</button></div>}
           {results===a.id&&<ul className="exercise-results">{classRoster.length?classRoster.map(s=>{const p=records.find(x=>x.student_id===s.student_id);return <li key={s.student_id}><span>{s.first_name?`${s.first_name} ${s.last_name??""}`:s.email}</span><span>{p?.completed_at?"Finished":p?`${completedChallenges(a.content,p.progress)} / ${exerciseChallenges(a.content).length} solved`:"Not started"}{p?.progress.hints.length?` · ${p.progress.hints.length} hints`:""}</span></li>}):<li>No students have joined yet.</li>}</ul>}

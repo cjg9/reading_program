@@ -48,7 +48,7 @@ export function createNarrationHandler(deps:Dependencies){
       const digest=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(signature));
       const key=Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,"0")).join("");
       const reservation=await deps.store.reserve(key,user.id,body.text.length);
-      if(reservation.status==="ready")return reply(200,await deps.store.read(reservation.path));
+      if(reservation.status==="ready")return reply(200,{...await deps.store.read(reservation.path),cache_key:key});
       if(reservation.status==="pending")return reply(409,{error:"This recording is already being prepared. Please wait."});
       if(reservation.status==="limited")return reply(429,{error:"The new-recording limit has been reached. Saved recordings still work; use the browser voice for new text."});
       if(reservation.status!=="generate")throw new Error("Invalid reservation");
@@ -73,7 +73,7 @@ export function createNarrationHandler(deps:Dependencies){
       if(typeof data.audio_base64!=="string"||!data.audio_base64||!validAlignment(data.alignment,body.text))throw new Error("Incomplete recording");
       const recording={audio_base64:data.audio_base64,alignment:data.alignment};
       await deps.store.save(key,reservation.lease,recording);
-      return reply(200,recording);
+      return reply(200,{...recording,cache_key:key});
       }catch(cause){await deps.store.fail(key,reservation.lease);throw cause;}
     }catch{return reply(503,{error:"The recording service is unavailable. Try again or use the browser voice."});}
   };

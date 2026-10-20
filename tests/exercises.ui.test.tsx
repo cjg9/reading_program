@@ -14,7 +14,7 @@ it("edits a saved practice in place, retains failed edits, and resets to create 
   const rpc=vi.fn().mockResolvedValueOnce({error:{message:"offline"}}).mockImplementation((_name:string,args:{p_content:ExerciseContent})=>{
     saved.content=args.p_content;return Promise.resolve({data:"saved",error:null});
   });
-  const client={rpc,from:()=>query([saved])} as unknown as SupabaseClient;
+  const client={rpc,functions:{invoke:vi.fn().mockResolvedValue({data:{publicationId:"recording"},error:null})},from:()=>query([saved])} as unknown as SupabaseClient;
   render(<TeacherExercises client={client} classes={[]}/>);
   fireEvent.click(await screen.findByRole("button",{name:"Edit practice",exact:true}));
   fireEvent.change(screen.getByLabelText("Title",{exact:true}),{target:{value:"Revised practice"}});
@@ -32,7 +32,7 @@ it("edits a saved practice in place, retains failed edits, and resets to create 
 it("confirms deletion, supports cancellation, and retains a practice after a failed delete",async()=>{
   const saved={id:"saved",teacher_id:"teacher",preset_key:null,content:exercisePresets[0].content};
   const rpc=vi.fn().mockResolvedValueOnce({error:{message:"offline"}}).mockResolvedValue({error:null});
-  const client={rpc,from:()=>query([saved])} as unknown as SupabaseClient;
+  const client={rpc,functions:{invoke:vi.fn().mockResolvedValue({data:{publicationId:"recording"},error:null})},from:()=>query([saved])} as unknown as SupabaseClient;
   render(<TeacherExercises client={client} classes={[]}/>);
   fireEvent.click(await screen.findByRole("button",{name:"Delete practice",exact:true}));
   expect(rpc).not.toHaveBeenCalled();
@@ -93,7 +93,7 @@ it("lets a teacher customize, save and assign a library exercise across selected
     if(name==="save_reading_exercise")library.push({id:library.length===1?"saved-id":`saved-${library.length}`,teacher_id:"teacher",preset_key:null,content:args.p_content!});
     return Promise.resolve({data:name==="class_roster_named"?[]:"saved-id",error:null});
   });
-  const client={rpc,from:(name:string)=>query(name==="reading_exercises"?library:[])} as unknown as SupabaseClient;
+  const client={rpc,functions:{invoke:vi.fn().mockResolvedValue({data:{publicationId:"recording"},error:null})},from:(name:string)=>query(name==="reading_exercises"?library:[])} as unknown as SupabaseClient;
   render(<TeacherExercises client={client} classes={classrooms}/>);
   await screen.findByText(/No practices assigned yet/);
   fireEvent.click(screen.getByRole("button",{name:"Customize"}));
@@ -105,8 +105,8 @@ it("lets a teacher customize, save and assign a library exercise across selected
   fireEvent.click(screen.getByRole("checkbox",{name:"English 6"}));
   fireEvent.click(screen.getByRole("checkbox",{name:"English 7"}));
   fireEvent.click(screen.getByRole("button",{name:"Assign to selected classes"}));
-  await waitFor(()=>expect(rpc).toHaveBeenCalledWith("assign_reading_exercise",{p_class_id:42,p_exercise_id:"saved-id"}));
-  await waitFor(()=>expect(rpc).toHaveBeenCalledWith("assign_reading_exercise",{p_class_id:43,p_exercise_id:"saved-id"}));
+  await waitFor(()=>expect(rpc).toHaveBeenCalledWith("assign_reading_exercise",{p_class_id:42,p_exercise_id:"saved-id",p_narration_id:"recording"}));
+  await waitFor(()=>expect(rpc).toHaveBeenCalledWith("assign_reading_exercise",{p_class_id:43,p_exercise_id:"saved-id",p_narration_id:"recording"}));
   await screen.findByText(/assigned to 2 classes/);
   expect(screen.getAllByText("Original passage")).toHaveLength(1);
   fireEvent.click(screen.getByRole("button",{name:"Customize a copy"}));
@@ -120,7 +120,7 @@ it("lets a teacher customize, save and assign a library exercise across selected
 it("loads student progress and sends saved work only for the selected assignment",async()=>{
   const rpc=vi.fn().mockResolvedValue({data:null,error:null});
   const record={assignment_id:"assignment",student_id:"student",progress:{answers:{[challenge.index]:"wrong"},hints:[]},completed_at:null};
-  const client={rpc,from:(name:string)=>query(name==="exercise_assignments"?[{id:"assignment",class_id:42,content,archived_at:null}]:[record])} as unknown as SupabaseClient;
+  const client={rpc,functions:{invoke:vi.fn().mockResolvedValue({data:{publicationId:"recording"},error:null})},from:(name:string)=>query(name==="exercise_assignments"?[{id:"assignment",class_id:42,content,archived_at:null}]:[record])} as unknown as SupabaseClient;
   render(<StudentExercises client={client} classId={42} studentId="student"/>);
   fireEvent.click(await screen.findByRole("button",{name:"Continue practice"}));
   fireEvent.click(screen.getByRole("button",{name:/Challenge 1:/}));
@@ -132,7 +132,7 @@ it("loads student progress and sends saved work only for the selected assignment
 
 it("allows creating practices before a teacher has classrooms",async()=>{
   const rpc=vi.fn().mockResolvedValue({data:"saved",error:null});
-  const client={rpc,from:()=>query([])} as unknown as SupabaseClient;
+  const client={rpc,functions:{invoke:vi.fn().mockResolvedValue({data:{publicationId:"recording"},error:null})},from:()=>query([])} as unknown as SupabaseClient;
   render(<TeacherExercises client={client} classes={[]}/>);
   await screen.findByText(/You can create and save practices now/);
   fireEvent.click(screen.getByRole("button",{name:"Create practice"}));
@@ -145,7 +145,7 @@ it("allows creating practices before a teacher has classrooms",async()=>{
 
 it("reports partial distribution failures while keeping successful assignments",async()=>{
   const rpc=vi.fn().mockImplementation((name:string,args:{p_class_id:number})=>Promise.resolve({data:[],error:name==="assign_reading_exercise"&&args.p_class_id===43?{message:"offline"}:null}));
-  const client={rpc,from:(name:string)=>query(name==="reading_exercises"?[{id:"saved",teacher_id:"teacher",preset_key:null,content}]:[])} as unknown as SupabaseClient;
+  const client={rpc,functions:{invoke:vi.fn().mockResolvedValue({data:{publicationId:"recording"},error:null})},from:(name:string)=>query(name==="reading_exercises"?[{id:"saved",teacher_id:"teacher",preset_key:null,content}]:[])} as unknown as SupabaseClient;
   render(<TeacherExercises client={client} classes={classrooms}/>);
   await screen.findByRole("button",{name:"Assign to selected classes"});
   fireEvent.click(screen.getByRole("checkbox",{name:"English 6"}));
@@ -153,15 +153,15 @@ it("reports partial distribution failures while keeping successful assignments",
   fireEvent.click(screen.getByRole("button",{name:"Assign to selected classes"}));
   await screen.findByText(/assigned to 1 class/);
   expect(screen.getByRole("alert").textContent).toContain("Could not assign to English 7");
-  expect(rpc).toHaveBeenCalledWith("assign_reading_exercise",{p_class_id:42,p_exercise_id:"saved"});
-  expect(rpc).toHaveBeenCalledWith("assign_reading_exercise",{p_class_id:43,p_exercise_id:"saved"});
+  expect(rpc).toHaveBeenCalledWith("assign_reading_exercise",{p_class_id:42,p_exercise_id:"saved",p_narration_id:"recording"});
+  expect(rpc).toHaveBeenCalledWith("assign_reading_exercise",{p_class_id:43,p_exercise_id:"saved",p_narration_id:"recording"});
 });
 
 it("keeps progress scoped to each assignment's classroom roster",async()=>{
   const rpc=vi.fn().mockImplementation((_name:string,args:{p_class_id:number})=>Promise.resolve({data:[{student_id:args.p_class_id===42?"alex":"sam",email:args.p_class_id===42?"alex@example.com":"sam@example.com",first_name:null,last_name:null}],error:null}));
   const assignments=classrooms.map(c=>({id:String(c.id),class_id:c.id,content,archived_at:null}));
   const records=[{assignment_id:"42",student_id:"sam",completed_at:"2026-10-01",progress:{answers:{},hints:[]}}];
-  const client={rpc,from:(name:string)=>query(name==="reading_exercises"?[]:name==="exercise_assignments"?assignments:records)} as unknown as SupabaseClient;
+  const client={rpc,functions:{invoke:vi.fn().mockResolvedValue({data:{publicationId:"recording"},error:null})},from:(name:string)=>query(name==="reading_exercises"?[]:name==="exercise_assignments"?assignments:records)} as unknown as SupabaseClient;
   render(<TeacherExercises client={client} classes={classrooms}/>);
   await screen.findAllByRole("button",{name:"Student progress"});
   expect(screen.getAllByText("0 of 1 students finished")).toHaveLength(2);
@@ -171,4 +171,17 @@ it("keeps progress scoped to each assignment's classroom roster",async()=>{
   fireEvent.click(screen.getAllByRole("button",{name:"Unassign",exact:true})[0]);
   fireEvent.click(screen.getByRole("button",{name:"Confirm unassign"}));
   await waitFor(()=>expect(rpc).toHaveBeenCalledWith("unassign_reading_exercise",{p_assignment_id:"42"}));
+});
+
+it("does not assign until complete narration is saved and retains the practice on failure",async()=>{
+ const rpc=vi.fn().mockResolvedValue({data:[],error:null});
+ const invoke=vi.fn().mockResolvedValue({data:null,error:new Error('offline')});
+ const client={rpc,functions:{invoke},from:(name:string)=>query(name==='reading_exercises'?[{id:'saved',teacher_id:'teacher',preset_key:null,content}]:[])} as unknown as SupabaseClient;
+ render(<TeacherExercises client={client} classes={classrooms}/>);
+ await screen.findByRole('button',{name:'Assign to selected classes'});
+ fireEvent.click(screen.getByRole('checkbox',{name:'English 6'}));fireEvent.click(screen.getByRole('button',{name:'Assign to selected classes'}));
+ await screen.findByRole('alert');
+ expect(rpc.mock.calls.some(([name])=>name==='assign_reading_exercise')).toBe(false);
+ expect(invoke).toHaveBeenCalledWith('read-aloud',expect.objectContaining({body:{action:'prepare',exerciseId:'saved'}}));
+ expect(screen.getByRole('button',{name:'Assign to selected classes'})).toBeTruthy();
 });

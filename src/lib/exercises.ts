@@ -25,7 +25,7 @@ export interface ExerciseContent {
   priorityWords?: string[];
 }
 export interface Exercise { id:string; teacher_id:string|null; preset_key:string|null; content:ExerciseContent }
-export interface Assignment { id:string; class_id:number; content:ExerciseContent; created_at:string; archived_at:string|null }
+export interface Assignment { id:string; class_id:number; content:ExerciseContent; created_at:string; archived_at:string|null; narration_id?:string|null }
 export interface ExerciseProgress { answers:Record<string,string>; hints:number[] }
 export interface ProgressRecord { assignment_id:string; student_id:string; progress:ExerciseProgress; completed_at:string|null }
 export const emptyProgress = (): ExerciseProgress => ({answers:{},hints:[]});

@@ -128,3 +128,11 @@ are not automatically synchronized: future UI work should read the affected fram
 make the code and Figma changes in the same task, compare screenshots, and report
 any blocked sync work. Reuse captured design context and batch relevant reads to
 conserve calls. Use fictional student data in Figma and design previews.
+
+## Publication narration — October 19, 2026
+
+The player now uses a saved full-passage recording created at publication, with
+sentence selection and a recording-position slider. Publishing shows preparation
+status and requires ready audio. These controls reuse the application's existing
+form and audio-control styles. The Figma player/control frames are still absent,
+as recorded above; these additions remain in the practice-view sync backlog.

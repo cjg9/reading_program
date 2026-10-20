@@ -417,5 +417,5 @@ enabled = true
 verify_jwt = false
 
 [functions.read-aloud]
-# The handler validates the user with Supabase Auth and a server-side trial allowlist.
+# The handler checks Auth plus exercise ownership / assignment RLS before access.
 verify_jwt = false
