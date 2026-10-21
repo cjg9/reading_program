@@ -37,7 +37,7 @@ export function StudentExercises({client,classId,studentId}:{client:SupabaseClie
       <button className="text-button" disabled={loading||saving} onClick={()=>{setSelected(null);void load();}}>Refresh practices</button></header>
     {error?<p className="error-message" role="alert">{error}</p>:loading?<p role="status">Loading your practices...</p>:assignment?<>
       <button className="back-button" disabled={saving} onClick={()=>setSelected(null)}>← All practices</button>
-      <ExercisePlayer key={assignment.id} content={assignment.content} assignmentId={assignment.narration_id?assignment.id:undefined} initialProgress={record?.progress} completed={Boolean(record?.completed_at)} onSave={(p,f)=>save(assignment,p,f)}/>
+      <ExercisePlayer key={assignment.id} content={assignment.content} assignmentId={assignment.id} initialProgress={record?.progress} completed={Boolean(record?.completed_at)} onSave={(p,f)=>save(assignment,p,f)}/>
     </>:assignments.length===0?<p>Your teacher hasn’t assigned a practice yet. Check back soon.</p>:<div className="exercise-grid">{assignments.map(a=>{
       const p=records.find(x=>x.assignment_id===a.id);return <article className="exercise-card" key={a.id}>
         <p className="eyebrow">{p?.completed_at?"Quest complete":p?"Keep going":"New quest"}</p><h3>{a.content.title}</h3><p>{strategies[a.content.strategy].name}</p>

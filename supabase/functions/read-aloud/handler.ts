@@ -34,13 +34,13 @@ export function createNarrationHandler(deps:Dependencies){
       const user=jwt?await deps.authenticate(jwt):null;
       if(!user?.confirmed)return reply(401,{error:"Sign in with a confirmed account to try ElevenLabs."});
       const allowed=(deps.env("ELEVENLABS_TRIAL_USER_IDS")??"").split(",").map(value=>value.trim()).filter(Boolean);
-      if(!allowed.includes(user.id))return reply(403,{error:"The ElevenLabs trial is not enabled for this account. Use the browser voice for now."});
+      if(!allowed.includes(user.id))return reply(403,{error:"The ElevenLabs trial is not enabled for this account. Please try again later."});
       const apiKey=deps.env("ELEVENLABS_API_KEY"),voice=deps.env("ELEVENLABS_VOICE_ID");
-      if(!apiKey||!voice)return reply(503,{error:"The ElevenLabs trial is awaiting setup. Use the browser voice for now."});
+      if(!apiKey||!voice)return reply(503,{error:"The ElevenLabs trial is awaiting setup. Please try again later."});
       let body;
       try{body=await request.json();}catch{return reply(400,{error:"Enter a passage to read."});}
       if(typeof body?.text!=="string"||!body.text.trim()||body.text.length>5000)
-        return reply(400,{error:"For this trial, choose a passage under 5,000 characters or use the browser voice."});
+        return reply(400,{error:"For this trial, choose a passage under 5,000 characters and try again."});
       const model=deps.env("ELEVENLABS_MODEL_ID")||"eleven_multilingual_v2";
       if(!["eleven_multilingual_v2","eleven_flash_v2_5","eleven_turbo_v2_5"].includes(model))return reply(503,{error:"The narration model needs configuration."});
       const settings={stability:0.65,similarity_boost:0.75,style:0,use_speaker_boost:true};
@@ -50,7 +50,7 @@ export function createNarrationHandler(deps:Dependencies){
       const reservation=await deps.store.reserve(key,user.id,body.text.length);
       if(reservation.status==="ready")return reply(200,{...await deps.store.read(reservation.path),cache_key:key});
       if(reservation.status==="pending")return reply(409,{error:"This recording is already being prepared. Please wait."});
-      if(reservation.status==="limited")return reply(429,{error:"The new-recording limit has been reached. Saved recordings still work; use the browser voice for new text."});
+      if(reservation.status==="limited")return reply(429,{error:"The new-recording limit has been reached. Saved recordings still work; please try new text again after the limit resets."});
       if(reservation.status!=="generate")throw new Error("Invalid reservation");
       try{
       const response=await deps.fetch(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voice)}/with-timestamps?output_format=mp3_44100_128`,{
@@ -61,12 +61,12 @@ export function createNarrationHandler(deps:Dependencies){
         await deps.store.fail(key,reservation.lease);
         // Never expose the provider's raw response, which may contain account details.
         const error=response.status===402
-          ?"ElevenLabs requires a paid plan or additional credits for this voice. The account owner must review billing; use the browser voice for now."
+          ?"ElevenLabs requires a paid plan or additional credits for this voice. The account owner must review billing; please try again after updating the account."
           :response.status===401||response.status===403
           ?"ElevenLabs denied access to this voice. The account owner should check the API key permissions and voice access."
           :response.status===429
-          ?"The ElevenLabs trial is busy or at its usage limit. Try the browser voice."
-          :"ElevenLabs could not create this recording. Try the browser voice.";
+          ?"The ElevenLabs trial is busy or at its usage limit. Please try again later."
+          :"ElevenLabs could not create this recording. Please try again later.";
         return reply(response.status===429?429:502,{error});
       }
       const data=await response.json();
@@ -75,6 +75,6 @@ export function createNarrationHandler(deps:Dependencies){
       await deps.store.save(key,reservation.lease,recording);
       return reply(200,{...recording,cache_key:key});
       }catch(cause){await deps.store.fail(key,reservation.lease);throw cause;}
-    }catch{return reply(503,{error:"The recording service is unavailable. Try again or use the browser voice."});}
+    }catch{return reply(503,{error:"The recording service is unavailable. Please try again later."});}
   };
 }

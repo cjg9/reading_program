@@ -49,7 +49,7 @@ export function ExercisePlayer({content,initialProgress,completed=false,preview=
     const next={...progress,answers:{...progress.answers,[active.index]:cleanWord(answer.trim())}};
     if(await persist(next)) {
       if(correctAnswer(answer,active.word)){
-        setFeedback(assignmentId?"Correct, you got it! The saved narration keeps the original puzzle wording.":"Correct, you got it! Re-read the sentence to hear it as intended.");
+        setFeedback("Correct, you got it! Listen to the sentence with your corrected word.");
         const sentence=sentences.find(s=>active.index>=s.start&&active.index<=s.end);
         if(sentence)setReread(current=>({parts:tokens.flatMap((text,index)=>index>=sentence.start&&index<=sentence.end?[{text,index}]:[]),requestId:(current?.requestId??0)+1}));
       }else setFeedback("Not quite yet. Reread the sentence or try a hint.");
@@ -65,7 +65,7 @@ export function ExercisePlayer({content,initialProgress,completed=false,preview=
     <p>{strategies[content.strategy].instruction} {content.strategy==="endings"?"Listen for words that sound unfinished. Hover over or select a word to reveal the missing spaces, then type the complete word.":"Look for puzzle words as you read. Select one, type the original, and check your answer."}</p>
     <button type="button" className="text-button" aria-expanded={showCount} onClick={()=>setShowCount(value=>!value)}>How many puzzle words?</button>
     {showCount&&<p className="word-hint">There {challenges.length===1?"is":"are"} {challenges.length} puzzle {challenges.length===1?"word":"words"} in this practice.</p>}
-    <ReadAloud parts={spokenParts} assignmentId={assignmentId} onWord={setSpoken} sentence={reread}/>
+    <ReadAloud content={{...content,challenges}} answers={progress.answers} parts={spokenParts} assignmentId={assignmentId} onWord={setSpoken} sentence={reread}/>
     <progress aria-label="Words solved" value={solved} max={Math.max(challenges.length,1)} />
     <div className={`exercise-play-area ${finished?"is-finished":""}`}><div className="reading-passage">{(()=>{
       const renderToken=(token:string,index:number)=>{

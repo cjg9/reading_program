@@ -136,3 +136,8 @@ sentence selection and a recording-position slider. Publishing shows preparation
 status and requires ready audio. These controls reuse the application's existing
 form and audio-control styles. The Figma player/control frames are still absent,
 as recorded above; these additions remain in the practice-view sync backlog.
+
+Narration follow-up: removed the narrator selector and browser voices; previews use
+the shared ElevenLabs controls. Correct answers trigger corrected-sentence audio,
+with a Read full passage button to return. Exercise/read-aloud frames remain in
+the documented Figma sync backlog.

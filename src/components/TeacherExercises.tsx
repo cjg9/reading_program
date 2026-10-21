@@ -10,7 +10,7 @@ function reveal(node:HTMLElement|null) {node?.focus({preventScroll:true});node?.
 function PlainPassage({content}:{content:ExerciseContent}) {
   const parts=useMemo(()=>splitPassage(content.passage).map((text,index)=>({text,index})),[content.passage]);
   const [spoken,setSpoken]=useState<number|null>(null);
-  return <><h3>{content.title}</h3><ReadAloud parts={parts} onWord={setSpoken}/><div className="reading-passage plain-passage">{parts.map(part=><span key={part.index} className={spoken===part.index&&part.text.trim()?"reading-token is-spoken":"reading-token"}>{part.text}</span>)}</div></>;
+  return <><h3>{content.title}</h3><ReadAloud content={{...content,challenges:[]}} parts={parts} onWord={setSpoken}/><div className="reading-passage plain-passage">{parts.map(part=><span key={part.index} className={spoken===part.index&&part.text.trim()?"reading-token is-spoken":"reading-token"}>{part.text}</span>)}</div></>;
 }
 
 const blank=():ExerciseContent=>({title:"",passage:"",strategy:"missing",mode:"type",targetWords:[],vocabulary:{}});
@@ -168,7 +168,7 @@ export function TeacherExercises({client,classes}:{client:SupabaseClient;classes
         return <article className="exercise-card assigned-exercise" key={a.id}><img className="exercise-type-icon" src="/design/exercise.svg" alt=""/><h4>{a.content.title}</h4><p className="eyebrow">{classes.find(c=>c.id===a.class_id)?.name}</p><p>{strategies[a.content.strategy].name}</p>
           <p>{records.filter(p=>p.completed_at).length} of {classRoster.length} students finished</p><div className="exercise-actions">
             <button className="secondary-button" onClick={()=>setResults(results===a.id?null:a.id)}>Student progress</button>
-            <button className="text-button" onClick={()=>showPreview(a.content,false,a.narration_id?a.id:undefined)}>Preview</button>
+            <button className="text-button" onClick={()=>showPreview(a.content,false,a.id)}>Preview</button>
             <button className="text-button danger-button" disabled={busy} onClick={()=>setArchiveTarget(a.id)}>Unassign</button></div>
           {archiveTarget===a.id&&<div className="exercise-confirm"><p>Remove this practice from students’ class page? Their saved work will be retained.</p><button className="secondary-button" disabled={busy} onClick={()=>void unassign(a.id)}>Confirm unassign</button> <button className="text-button" disabled={busy} onClick={()=>setArchiveTarget(null)}>Cancel</button></div>}
           {results===a.id&&<ul className="exercise-results">{classRoster.length?classRoster.map(s=>{const p=records.find(x=>x.student_id===s.student_id);return <li key={s.student_id}><span>{s.first_name?`${s.first_name} ${s.last_name??""}`:s.email}</span><span>{p?.completed_at?"Finished":p?`${completedChallenges(a.content,p.progress)} / ${exerciseChallenges(a.content).length} solved`:"Not started"}{p?.progress.hints.length?` · ${p.progress.hints.length} hints`:""}</span></li>}):<li>No students have joined yet.</li>}</ul>}

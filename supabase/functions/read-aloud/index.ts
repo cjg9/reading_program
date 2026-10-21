@@ -47,6 +47,14 @@ async function contentHash(content:PassageContent){
 }
 Deno.serve(createPublicationHandler({
   authenticate,
+  teacher:async(jwt,user)=>{
+    const {data,error}=await caller(jwt).from("profiles").select("account_type").eq("id",user).maybeSingle();
+    if(error)throw error;return data?.account_type==="teacher";
+  },
+  assignmentContent:async(jwt,id)=>{
+    const {data,error}=await caller(jwt).from("exercise_assignments").select("content").eq("id",id).is("archived_at",null).maybeSingle();
+    if(error)throw error;return data?.content??null;
+  },
   exercise:async(jwt,id,user)=>{
     const {data,error}=await caller(jwt).from("reading_exercises").select("content").eq("id",id).eq("teacher_id",user).maybeSingle();
     if(error)throw error;return data?.content??null;
@@ -64,7 +72,7 @@ Deno.serve(createPublicationHandler({
     if(error)throw error;return data;
   },
   generate:async(text,user)=>{
-    // This internal generator is reachable only after the ownership check above.
+    // Generation is limited to teacher previews, owned publication, or authorized assignment content.
     const generate=createNarrationHandler({store,fetch,authenticate:async()=>({id:user,confirmed:true}),
       env:name=>name==="ELEVENLABS_TRIAL_USER_IDS"?user:Deno.env.get(name)});
     return generate(new Request("https://internal.invalid/generate",{method:"POST",headers:{Authorization:"Bearer internal"},body:JSON.stringify({text})}));

@@ -3,9 +3,9 @@ import {act,cleanup,fireEvent,render,screen} from "@testing-library/react";
 import {afterEach,beforeEach,expect,it,vi} from "vitest";
 import {ElevenLabsReadAloud} from "../src/components/ElevenLabsReadAloud";
 import {ReadAloud} from "../src/components/ReadAloud";
-import {requestPublishedNarration,timedWords,type PublishedNarration} from "../src/lib/narration";
+import {requestPublishedNarration,requestPreviewNarration,timedWords,type PublishedNarration} from "../src/lib/narration";
 
-vi.mock("../src/lib/narration",async importOriginal=>({...await importOriginal<object>(),requestPublishedNarration:vi.fn()}));
+vi.mock("../src/lib/narration",async importOriginal=>({...await importOriginal<object>(),requestPublishedNarration:vi.fn(),requestPreviewNarration:vi.fn()}));
 vi.mock("../src/lib/supabase",()=>({supabase:null}));
 const parts=[{text:"Hello",index:0},{text:" ",index:1},{text:"readers.",index:2}];
 function recording(text="Hello readers."):PublishedNarration {
@@ -29,6 +29,7 @@ beforeEach(()=>{
   vi.stubGlobal("cancelAnimationFrame",vi.fn());
   vi.stubGlobal("URL",class extends URL {static createObjectURL=vi.fn(()=>"blob:test");static revokeObjectURL=vi.fn();});
   vi.mocked(requestPublishedNarration).mockReset().mockResolvedValue(recording());
+  vi.mocked(requestPreviewNarration).mockReset().mockResolvedValue(recording());
 });
 afterEach(()=>{cleanup();vi.unstubAllGlobals();vi.unstubAllEnvs();});
 it("tracks audio time, pauses, changes speed without regenerating, and clears on end",async()=>{
@@ -80,11 +81,9 @@ it("shows service errors and keeps browser fallback selectable",async()=>{
   vi.stubEnv("VITE_ELEVENLABS_TRIAL","true");
   vi.mocked(requestPublishedNarration).mockRejectedValue(new Error("The trial is awaiting setup."));
   render(<ReadAloud assignmentId="assignment" parts={parts}/>);
-  fireEvent.change(screen.getByLabelText("Narrator"),{target:{value:"elevenlabs"}});
   fireEvent.click(screen.getByRole("button",{name:"Read aloud"}));
   expect((await screen.findByRole("alert")).textContent).toContain("awaiting setup");
-  fireEvent.change(screen.getByLabelText("Narrator"),{target:{value:"browser"}});
-  expect(screen.queryByRole("alert")).toBeNull();
+  expect(screen.queryByLabelText("Narrator")).toBeNull();
 });
 
 it("maps Unicode character offsets and refuses misaligned or invalid timestamps",()=>{
@@ -111,9 +110,11 @@ it("seeks to a sentence and arbitrary time using the same complete recording",as
  expect(requestPublishedNarration).toHaveBeenCalledOnce();
  expect(requestPublishedNarration).toHaveBeenCalledWith('assignment',expect.any(AbortSignal));
 });
-it("replays a corrected sentence by its indexes without requesting new audio",async()=>{
+it("requests corrected sentence audio and reuses it on replay",async()=>{
  const {rerender}=render(<ElevenLabsReadAloud assignmentId="assignment" parts={parts}/>);
  fireEvent.click(screen.getByRole('button',{name:'Read aloud'}));await screen.findByRole('button',{name:'Pause reading'});
  rerender(<ElevenLabsReadAloud assignmentId="assignment" parts={parts} sentence={{parts:[{text:'different solved text',index:2}],requestId:1}}/>);
- await act(async()=>{});expect(FakeAudio.instances[0].currentTime).toBe(0.6);expect(requestPublishedNarration).toHaveBeenCalledOnce();
+ await act(async()=>{});expect(FakeAudio.instances[1].currentTime).toBe(0.6);expect(requestPreviewNarration).toHaveBeenCalledOnce();
+ fireEvent.click(screen.getByRole("button",{name:"Re-read sentence"}));await act(async()=>{});
+ expect(requestPreviewNarration).toHaveBeenCalledOnce();
 });

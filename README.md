@@ -29,7 +29,7 @@ Supabase SMTP, Edge Function, and callback settings needed to send invitations.
 See [reading exercises](docs/exercises.md) for the teacher and student flows,
 game rules, and database setup. Class event notifications are not included yet.
 See [published narration](docs/elevenlabs-trial.md) for one-time recording at
-publication, saved audio playback, sentence seeking, and timed word highlighting.
+preview/publication, saved audio playback, corrected-sentence replay, and timed word highlighting.
 
 ## Product rule: teachers are class moderators
 

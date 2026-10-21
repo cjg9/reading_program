@@ -31,12 +31,12 @@ export function timedWords(parts:SpokenPart[],alignment:Alignment):TimedWord[] {
   const text=parts.map(part=>part.text).join("");
   const {characters,character_start_times_seconds:starts,character_end_times_seconds:ends}=alignment;
   if(characters.join("")!==text || starts.length!==characters.length || ends.length!==characters.length)
-    throw new Error("The recording could not be matched to this passage. Try the browser voice.");
+    throw new Error("The recording could not be matched to this passage. Please try again.");
   let offset=0;
   const ranges=characters.map((character,i)=>{
     const start=offset;offset+=character.length;
     if(!Number.isFinite(starts[i]) || !Number.isFinite(ends[i]) || starts[i]<0 || ends[i]<starts[i] || (i>0 && starts[i]<starts[i-1]))
-      throw new Error("The recording has invalid word timings. Try the browser voice.");
+      throw new Error("The recording has invalid word timings. Please try again.");
     return {start,end:offset,time:starts[i],until:ends[i]};
   });
   offset=0;
@@ -64,7 +64,7 @@ async function invokeNarration(client:SupabaseClient,body:object,signal:AbortSig
       });
       continue;
     }
-    let message="ElevenLabs is unavailable. Try again or select the browser voice.";
+    let message="ElevenLabs is unavailable. Please try again.";
     if(error.context instanceof Response){
       const body=await error.context.json().catch(()=>null);
       if(typeof body?.error==="string")message=body.error;
@@ -85,4 +85,11 @@ export async function prepareNarration(client:SupabaseClient,exerciseId:string):
   const data=await invokeNarration(client,{action:"prepare",exerciseId},new AbortController().signal);
   if(typeof data?.publicationId!=="string")throw new Error("The recording was not saved. Please try publishing again.");
   return data.publicationId;
+}
+
+export async function requestPreviewNarration(body:object,signal:AbortSignal):Promise<PublishedNarration>{
+  if(!supabase)throw new Error("Sign in to listen.");
+  const data=await invokeNarration(supabase,body,signal);
+  if(!data?.audio_base64||!data?.alignment||!Array.isArray(data?.parts))throw new Error("The recording is incomplete. Please try again.");
+  return data;
 }
