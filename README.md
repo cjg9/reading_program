@@ -145,6 +145,10 @@ npm.cmd install
 npm.cmd run dev
 ```
 
+For a fully local backend with fictional seeded accounts (Docker required), use
+`npx.cmd supabase start` and `npm.cmd run dev:local` instead; see
+[Optional fully local Supabase](docs/development.md#optional-fully-local-supabase).
+
 Open `http://localhost:5173` for the public homepage,
 `http://localhost:5173/student` for students, or
 `http://localhost:5173/teacher` for teachers. Sign in as a teacher, create a

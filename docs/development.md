@@ -100,17 +100,33 @@ The normal documented workflow connects the local frontend to a hosted Supabase
 project. A CLI backend configuration also exists in
 [supabase/config.toml](../supabase/config.toml): local project ID
 `reading_program`, Postgres 17, API 54321, DB 54322, Studio 54323, captured-mail UI
-54324, analytics 54327, Deno 2 Edge Runtime. A container runtime and Supabase CLI
-are separate prerequisites for a full local stack.
+54324, analytics 54327, Deno 2 Edge Runtime. The Supabase CLI is a project dev
+dependency (`npx.cmd supabase`); Docker Desktop (WSL 2 backend on Windows) is a
+separate prerequisite.
 
-Full local stack startup has not been verified with Docker and the Supabase CLI.
-[`supabase/seed.sql`](../supabase/seed.sql) runs after migrations on a local
-`supabase db reset`. It creates one fictional teacher (`teacher@example.test`), one
-student (`student@example.test`), a class, and an enrollment; the local-only
-password is in the file header. It was checked by loading every migration and the
-seed into PGlite with a stand-in auth schema, not against a real local stack.
-Practices are not seeded because publication needs generated narration; preset
-content is in a migration. Do not reset a linked hosted database as a local setup step.
+```powershell
+npx.cmd supabase start      # first run downloads images; applies migrations + seed
+npx.cmd supabase status -o env
+npm.cmd run dev:local       # Vite mode "localstack"
+npx.cmd supabase db reset   # reapply migrations + seed, discarding local data
+npx.cmd supabase stop
+```
+
+`npm.cmd run dev:local` reads `.env.localstack.local` (gitignored), which overrides
+`.env.local` without changing it. Create it with `VITE_SUPABASE_URL=http://localhost:54321`
+and the `PUBLISHABLE_KEY` from `supabase status`. `npm.cmd run dev` keeps using the
+hosted project in `.env.local`.
+
+[`supabase/seed.sql`](../supabase/seed.sql) creates one fictional teacher
+(`teacher@example.test`), one student (`student@example.test`), a class, and an
+enrollment; the local-only password is in the file header. Verified November 3,
+2026: `supabase start` applied every migration and the seed on the local stack,
+and both accounts signed in through `dev:local`. Practices are not seeded because
+publication needs generated narration; preset content is in a migration. Edge
+Functions are not served by default; `supabase functions serve` needs secrets, and
+narration/invitations then call ElevenLabs and Resend for real. Studio (54323) and
+captured mail (54324) are local tools. Do not reset a linked hosted database as a
+local setup step.
 
 The frontend URL validator accepts HTTPS or the hostname `localhost`. For a local
 HTTP API, use `http://localhost:54321`; `http://127.0.0.1:54321` currently fails that
@@ -264,8 +280,7 @@ setup error.
 - Hosted Vercel/Supabase configuration, applied migrations, deployed function
   versions, DNS, SMTP, actual email delivery, current voice access, and provider
   credit limits were not checked for this documentation.
-- Full local Supabase bootstrap (Docker + CLI) is unverified; `seed.sql` has only
-  been checked against PGlite.
+- Local Edge Functions (`supabase functions serve`) have not been exercised.
 - Figma is partially synchronized. Practice/player/narration controls and other
   screens remain in the [documented design backlog](design-workflow.md).
 - No checked-in scheduler, notification worker, email webhook, application error
