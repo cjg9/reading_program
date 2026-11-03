@@ -120,15 +120,16 @@ or set a user-scoped execution policy if that is permitted on your machine.
 
 ## 3. Configure local environment variables
 
-Create `.env.local` if it does not already exist, preserving any existing settings:
+Copy `.env.example` to `.env.local` if it does not already exist, preserving any
+existing settings:
 
 ```powershell
 if (-not (Test-Path -LiteralPath .env.local)) {
-  New-Item -ItemType File -Path .env.local
+  Copy-Item -LiteralPath .env.example -Destination .env.local
 }
 ```
 
-Add your project's browser configuration:
+Replace the placeholders with your project's browser configuration:
 
 ```env
 VITE_SUPABASE_URL=https://your-project-ref.supabase.co

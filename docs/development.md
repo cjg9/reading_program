@@ -33,13 +33,13 @@ npm.cmd --version
 npm.cmd ci
 ```
 
-Keep an existing `.env.local`. On a new checkout, create it if absent and add the
-two browser settings shown below. `.env.example` is referenced in some setup UI
-but is absent from the reviewed repository; do not rely on copying it.
+Keep an existing `.env.local`. On a new checkout, copy the tracked
+[`.env.example`](../.env.example) if `.env.local` is absent, then replace the two
+browser settings shown below.
 
 ```powershell
 if (-not (Test-Path -LiteralPath .env.local)) {
-  New-Item -ItemType File -Path .env.local
+  Copy-Item -LiteralPath .env.example -Destination .env.local
 }
 ```
 
@@ -103,10 +103,14 @@ project. A CLI backend configuration also exists in
 54324, analytics 54327, Deno 2 Edge Runtime. A container runtime and Supabase CLI
 are separate prerequisites for a full local stack.
 
-Full local stack startup has not been verified. The config enables seed
-`./seed.sql`, but `supabase/seed.sql` is absent. Resolve seed configuration before
-claiming local bootstrap/reset works. Preset content is in a migration, not this
-missing seed file. Do not reset a linked hosted database as a local setup step.
+Full local stack startup has not been verified with Docker and the Supabase CLI.
+[`supabase/seed.sql`](../supabase/seed.sql) runs after migrations on a local
+`supabase db reset`. It creates one fictional teacher (`teacher@example.test`), one
+student (`student@example.test`), a class, and an enrollment; the local-only
+password is in the file header. It was checked by loading every migration and the
+seed into PGlite with a stand-in auth schema, not against a real local stack.
+Practices are not seeded because publication needs generated narration; preset
+content is in a migration. Do not reset a linked hosted database as a local setup step.
 
 The frontend URL validator accepts HTTPS or the hostname `localhost`. For a local
 HTTP API, use `http://localhost:54321`; `http://127.0.0.1:54321` currently fails that
@@ -260,10 +264,8 @@ setup error.
 - Hosted Vercel/Supabase configuration, applied migrations, deployed function
   versions, DNS, SMTP, actual email delivery, current voice access, and provider
   credit limits were not checked for this documentation.
-- `.env.example` is missing; a later broad `.env*` rule also overrides its earlier
-  exception in `.gitignore`. The setup UI still refers to that missing template.
-  This guide and README provide manual setup without changing runtime code.
-- Full local Supabase bootstrap is unverified; configured `seed.sql` is missing.
+- Full local Supabase bootstrap (Docker + CLI) is unverified; `seed.sql` has only
+  been checked against PGlite.
 - Figma is partially synchronized. Practice/player/narration controls and other
   screens remain in the [documented design backlog](design-workflow.md).
 - No checked-in scheduler, notification worker, email webhook, application error
