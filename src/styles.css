@@ -914,7 +914,8 @@ blockquote cite {
 }
 
 .invite-batch { margin-top: 24px; }
-.invite-table-scroll { overflow-x: auto; }
+/* position: relative keeps absolutely positioned .sr-only header text inside the scroll clip. */
+.invite-table-scroll { overflow-x: auto; position: relative; }
 .invite-table { width: 100%; border-collapse: collapse; text-align: left; font-size: .9rem; }
 .invite-table caption { text-align: left; padding-bottom: 12px; color: #626b61; }
 .invite-table th { font-size: .8rem; color: #626b61; padding: 8px 6px; }
