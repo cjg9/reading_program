@@ -1,5 +1,8 @@
 # Reading exercises
 
+For architecture, permissions, and agent entry points, see the
+[systems reference](systems.md) and [AI agent guide](ai-agent-guide.md).
+
 Open **My Practices** in the teacher sidebar, directly below **My Classrooms**.
 Practices belong to the teacher and are shared across their classrooms. Create
 and save practices even before creating a class. **Passage library** provides
@@ -12,6 +15,11 @@ separate actions. Each classroom receives its own assignment and student work.
 If distribution partially fails, successful assignments remain saved and the
 failed classroom names are shown for retry. Repeating an active assignment
 retains its existing student work.
+
+Assignment first prepares a matching complete narration publication. New
+publication requires ready audio; saving a draft does not generate it. Narration
+has a 5,000 spoken-character cap, which is lower than the editor's 20,000-character
+passage limit. See [published narration](elevenlabs-trial.md) for setup and quotas.
 
 Choose **Edit practice** on a saved practice, then **Save changes** to update it
 in place. Existing classroom assignments retain their assigned version and student
@@ -44,12 +52,13 @@ type the original word. **Check answer** saves correct and incorrect attempts;
 marking their locations. Puzzle words start unselected and without colored
 highlights. Students choose each word themselves; there is no next-word button.
 After a correct answer is saved, the player says **Correct, you got it!** and
-automatically reads the complete original sentence aloud. **Re-read sentence**
-replays it. Read aloud tracks every spoken word across the full passage, including
-ordinary words and puzzle words. Reading speeds are Slower (0.6×), Normal (1×),
-and Faster (1.5×). Changing speed during playback restarts at the current word
-with the new rate; changing it while paused applies on resume. Browsers without
-speech support still show the correction and feedback.
+automatically reads the corrected sentence aloud, restoring correct answers while
+leaving unsolved puzzle words hidden. **Re-read sentence** replays it. Read aloud
+uses saved ElevenLabs audio and tracks words from character timestamps. Reading
+speeds are Slower (0.6×), Normal (1×), and Faster (1.5×); speed changes apply to the
+audio player without regenerating a recording. Full-passage controls include a
+sentence selector and position slider. Browser speech synthesis is no longer used.
+If autoplay is blocked, choose **Resume reading** to start playback.
 
 **Hint** saves hint usage and shows the first letter, length, and any available
 definition. Checked answers and hints resume across sessions. Text that has
@@ -80,13 +89,22 @@ before deploying the frontend:
 1. `20260915090000_reading_exercises.sql`
 2. `20260915090100_reading_exercise_presets.sql`
 
+Current deletion and narration features also require
+`20261018090000_delete_reading_exercises.sql`,
+`20261018100000_narration_cache.sql`, and
+`20261019090000_published_narration.sql`. See the complete
+[migration/release order](development.md#migrations-and-release-order) and
+[narration configuration](elevenlabs-trial.md).
+
 The tables are `reading_exercises`, `exercise_assignments`, and
 `exercise_progress`. Browser clients have SELECT access governed by Row Level
 Security; all changes use permission-checked functions. Teachers can manage
 only their own exercises and classes. Students can read and save work only in
 classes they currently belong to. Removing a student revokes exercise access.
 Completed work is immutable; incomplete saves from multiple tabs use the last
-successful save. No new environment variables or email setup are required.
+successful save. Basic exercise storage requires no additional browser variables;
+the current publication flow also requires the narration function and its server
+secrets. Exercise assignment does not send notification emails.
 
 Run `npm test` and `npm run build`. Coverage includes word transformations,
 resume and failed-save flows, teacher creation/assignment, SQL ownership and

@@ -4,6 +4,10 @@ Dot Reading is a React and TypeScript reading application for teachers and stude
 It uses Supabase for authentication and class data, and it is configured for
 deployment through Vercel.
 
+Start with the [local documentation outline](docs/README.md) for a complete
+system map, configuration and deployment guide, and instructions for working
+with an AI agent. Agents should also read [AGENTS.md](AGENTS.md).
+
 ## What is included
 
 - Teacher email/password sign-up, sign-in, session restoration, and sign-out
@@ -116,13 +120,15 @@ or set a user-scoped execution policy if that is permitted on your machine.
 
 ## 3. Configure local environment variables
 
-Create a local file from the committed example:
+Create `.env.local` if it does not already exist, preserving any existing settings:
 
 ```powershell
-Copy-Item .env.example .env.local
+if (-not (Test-Path -LiteralPath .env.local)) {
+  New-Item -ItemType File -Path .env.local
+}
 ```
 
-Replace its placeholder values:
+Add your project's browser configuration:
 
 ```env
 VITE_SUPABASE_URL=https://your-project-ref.supabase.co

@@ -3,6 +3,17 @@
 Design reference: [Dot Reading in Figma](https://www.figma.com/design/tfTA46pQ1s1YHtvB10qrkg/Dot-Reading?node-id=0-1).
 File key: `tfTA46pQ1s1YHtvB10qrkg`; page: `0:1`.
 
+## Current implementation reference — November 2, 2026
+
+Read the dated entries below as design history; later code changes supersede
+some behavior. The current player uses shared ElevenLabs narration, with no
+browser-voice fallback or narrator selector. New upside-down practices rotate one
+complete sentence per paragraph; assigned manifests preserve their historical
+puzzles. The public homepage is `/`, with account portals at `/student` and
+`/teacher`. See the [systems reference](systems.md) for current flows and the
+[operations guide](development.md) for setup gaps. The Figma sync backlog below
+has not been reverified or completed as part of this documentation update.
+
 ## Screen mapping
 
 | Application view | Desktop frame | Mobile frame | Implementation |
