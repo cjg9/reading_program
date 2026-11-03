@@ -1,7 +1,50 @@
 # Dot Reading design workflow
 
-Design reference: [Dot Reading in Figma](https://www.figma.com/design/tfTA46pQ1s1YHtvB10qrkg/Dot-Reading?node-id=0-1).
-File key: `tfTA46pQ1s1YHtvB10qrkg`; page: `0:1`.
+Design reference: [Dot Reading in Figma](https://www.figma.com/design/tfTA46pQ1s1YHtvB10qrkg/Dot-Reading?node-id=40-2).
+File key: `tfTA46pQ1s1YHtvB10qrkg`. Current page: **Current app — Nov 3, 2026**
+(`40:2`). The earlier concept page was renamed **Original concept (Sept 2026)** (`0:1`)
+and is history only.
+
+## Current app page — November 3, 2026
+
+The Figma account now has a Professional Full seat, so the MCP can edit the file.
+Every screen reachable with the seeded local accounts was converted from the running
+app (local stack, `supabase/seed.sql`, fictional data) into editable Figma layers at
+1440 px desktop and 390 px mobile. The app is the source of truth. The frames reflect
+it one-to-one, including the five screens the concept never had.
+
+| # | Application view | Desktop | Mobile | Implementation |
+| --- | --- | --- | --- | --- |
+| 01 | Public homepage `/` | `43:2` | `54:2` | `WelcomePage.tsx` |
+| 02 | Teacher portal `/teacher` | `44:2` | `55:2` | `AuthForm.tsx` |
+| 03 | Student portal `/student` | `45:2` | `56:2` | `AuthForm.tsx` |
+| 04 | Teacher classrooms | `41:2` | `57:2` | `TeacherDashboard.tsx` |
+| 05 | Class overview | `46:2` | `58:2` | `TeacherDashboard.tsx` |
+| 06 | Class students | `47:2` | `59:2` | `ClassPeople.tsx` |
+| 07 | Class statistics | `48:2` | `60:2` | `ClassInsights.tsx` |
+| 08 | My Practices | `49:2` | `61:2` | `TeacherExercises.tsx` |
+| 09 | Practice preview | `67:2` | `68:2` | `TeacherExercises.tsx`, `ElevenLabsReadAloud.tsx` |
+| 10 | Practice customize | `51:2` | `63:2` | `TeacherExercises.tsx` |
+| 11 | Student classes | `52:2` | `64:2` | `StudentDashboard.tsx` |
+| 12 | Student class | `53:2` | `65:2` | `StudentDashboard.tsx` |
+
+Not yet on the page: the assigned student practice player, narration playback states,
+and the corrected-sentence feedback. They need a published practice, which needs
+the `read-aloud` function and ElevenLabs credits. Add them the first time those
+screens are exercised.
+
+### Staying in sync
+
+Every UI change updates Figma in the same task:
+
+1. Implement and verify the change in React.
+2. Re-capture the affected screens from the local stack at both widths with the
+   capture script described in the agent guide. Replace the frame in place, keeping
+   its position and name, and update the table above if node IDs change.
+3. Compare the Figma frame against the app screenshot and report any mismatch.
+
+Design changes made in Figma first are implemented in React, then the frame is
+re-captured so the page always mirrors the shipped app.
 
 ## Current implementation reference — November 2, 2026
 
@@ -14,7 +57,7 @@ puzzles. The public homepage is `/`, with account portals at `/student` and
 [operations guide](development.md) for setup gaps. The Figma sync backlog below
 has not been reverified or completed as part of this documentation update.
 
-## Screen mapping
+## Original concept screen mapping (history)
 
 | Application view | Desktop frame | Mobile frame | Implementation |
 | --- | --- | --- | --- |

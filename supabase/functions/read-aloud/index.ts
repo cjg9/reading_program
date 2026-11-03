@@ -6,6 +6,9 @@ const admin=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SE
   auth:{persistSession:false,autoRefreshToken:false},
 });
 const bucket=admin.storage.from("reading-narration");
+// The narrator is a product choice, versioned with the code rather than a secret: Clamon (ElevenLabs Voice Library).
+// Changing it only affects new recordings; published recordings stay pinned to their saved audio.
+const NARRATOR_VOICE_ID="cdnpdcqt2HW1XtKv2f3V";
 
 const store:RecordingStore={
     reserve:async(key,user,characters)=>{
@@ -74,7 +77,7 @@ Deno.serve(createPublicationHandler({
   generate:async(text,user)=>{
     // Generation is limited to teacher previews, owned publication, or authorized assignment content.
     const generate=createNarrationHandler({store,fetch,authenticate:async()=>({id:user,confirmed:true}),
-      env:name=>name==="ELEVENLABS_TRIAL_USER_IDS"?user:Deno.env.get(name)});
+      env:name=>name==="ELEVENLABS_TRIAL_USER_IDS"?user:name==="ELEVENLABS_VOICE_ID"?NARRATOR_VOICE_ID:Deno.env.get(name)});
     return generate(new Request("https://internal.invalid/generate",{method:"POST",headers:{Authorization:"Bearer internal"},body:JSON.stringify({text})}));
   },
   save:async(exerciseId,content,key)=>{

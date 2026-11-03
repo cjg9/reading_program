@@ -82,8 +82,10 @@ Paths below are relative to the repository root.
    corrected sentences, and legacy assignments may generate on cache misses.
 7. **UI language and storage names differ.** The UI says Practices; SQL/API names
    still use `exercise`. Avoid renaming persisted contracts just to match labels.
-8. **Designs have a backlog.** Use the existing Figma file, fictional data, and
-   the documented workflow. A mockup is not evidence that a feature exists.
+8. **Figma mirrors the shipped app.** Its "Current app" page is captured from the
+   running app. After a UI change, run `npm.cmd run figma:snapshot -- <outDir> <screen-prefix>`
+   and replace the affected frames, following [the design workflow](design-workflow.md).
+   A mockup is not evidence that a feature exists.
 
 ## Suggested work sequence
 

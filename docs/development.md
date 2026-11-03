@@ -149,12 +149,12 @@ List variable names and storage locations in documentation, never private values
 | `INVITE_FROM_EMAIL` | Same | Approved sender identity; existing notes use `Dot Reading <noreply@dotreading.com>` |
 | `SITE_URL` | Same | Application origin used to build invitation URLs |
 | `ELEVENLABS_API_KEY` | `read-aloud` Edge Function secrets | Private provider key |
-| `ELEVENLABS_VOICE_ID` | Same | Required accessible voice identifier |
+| `ELEVENLABS_VOICE_ID` | No longer read | Narrator is pinned in `read-aloud/index.ts` (Clamon); the secret can be removed |
 | `ELEVENLABS_MODEL_ID` | Same | Optional; defaults to `eleven_multilingual_v2` |
 | Auth Site URL / redirect allowlist | Hosted Supabase Auth URL Configuration | Confirmation/recovery/invitation callback destinations |
 | Auth SMTP / email templates | Hosted Supabase Auth email settings | Confirmation and recovery delivery, separate from invite API |
 | Sending-domain DNS | Resend and domain/DNS provider | Sender verification/authentication |
-| Application narration budgets | `public.narration_limits`, administered server-side | Defaults 10,000 global characters/month, 5,000/account/day, UTC |
+| Application narration budgets | `public.narration_limits`, administered server-side | 28,000 global characters/month (ElevenLabs Starter), 5,000/account/day, UTC |
 | Provider credit/key restrictions | ElevenLabs account | Separate from SQL budgets |
 
 `ELEVENLABS_TRIAL_USER_IDS` is an internal generator mechanism: the production
@@ -281,8 +281,9 @@ setup error.
   versions, DNS, SMTP, actual email delivery, current voice access, and provider
   credit limits were not checked for this documentation.
 - Local Edge Functions (`supabase functions serve`) have not been exercised.
-- Figma is partially synchronized. Practice/player/narration controls and other
-  screens remain in the [documented design backlog](design-workflow.md).
+- Figma mirrors every screen reachable with the seed accounts (Nov 3, 2026). The
+  assigned practice player and narration states are not yet captured; see the
+  [design workflow](design-workflow.md).
 - No checked-in scheduler, notification worker, email webhook, application error
   monitoring integration, or audio cleanup policy was found. Supabase's local
   analytics option is not an application analytics integration.

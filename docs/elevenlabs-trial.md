@@ -39,23 +39,33 @@ lets the user start audio explicitly.
 ## Configuration and deployment
 
 Apply `20261018100000_narration_cache.sql` and
-`20261019090000_published_narration.sql`, then deploy `read-aloud` and the frontend.
+`20261019090000_published_narration.sql` and
+`20261103090000_starter_narration_limits.sql`, then deploy `read-aloud` and the frontend.
 The gateway JWT check is disabled for modern Supabase keys; the handler explicitly
 checks Supabase Auth, confirmed email, ownership for generation, and assignment RLS
 for playback. `ELEVENLABS_TRIAL_USER_IDS` and `VITE_ELEVENLABS_TRIAL` no longer gate
 this production workflow. No API key belongs in any `VITE_` variable.
 
-Server secrets: `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID`, and optional
-`ELEVENLABS_MODEL_ID` (default `eleven_multilingual_v2`). Current voice: Brian,
-`nPczCjzI2devNBz1zQrb`. Preferred paid-plan voice: Clamon,
-`cdnpdcqt2HW1XtKv2f3V`. [Voice Library voices require paid API access](https://elevenlabs.io/docs/eleven-creative/voices/voice-library).
-[Default voices retire December 31, 2026](https://elevenlabs.io/docs/help-center/product/voices/my-voices/what-are-default-voices);
-choose a supported voice before that date. Existing recordings remain stored.
+Server secrets: `ELEVENLABS_API_KEY` and optional `ELEVENLABS_MODEL_ID` (default
+`eleven_multilingual_v2`). The account is on the ElevenLabs Starter plan (from
+November 3, 2026).
+
+Narrator: Clamon, `cdnpdcqt2HW1XtKv2f3V`, pinned as `NARRATOR_VOICE_ID` in
+`supabase/functions/read-aloud/index.ts`. The voice is a product choice, not a secret,
+so `ELEVENLABS_VOICE_ID` is no longer read and can be removed from the function
+secrets. Clamon is a [Voice Library voice, which requires paid API access](https://elevenlabs.io/docs/eleven-creative/voices/voice-library);
+add it to the account's My Voices if the API reports that it cannot access the voice.
+Recordings made earlier with Brian (`nPczCjzI2devNBz1zQrb`) remain stored and keep
+playing for their assignments.
 
 ## Cost controls and failure behavior
 
-The existing hard limits remain 10,000 newly requested characters per UTC calendar
-month globally and 5,000 per requesting account per UTC day. A full recording is limited to
+The hard limits are 28,000 newly requested characters per UTC calendar month
+globally (`20261103090000_starter_narration_limits.sql`, sized to Starter's 30,000
+monthly credits with headroom) and 5,000 per requesting account per UTC day.
+ElevenLabs resets credits on the billing date, not the 1st, so a provider refusal near
+the end of a billing month is still possible; it fails cleanly and saved recordings
+keep playing. A full recording is limited to
 5,000 spoken characters in this initial release. Publication fails clearly when
 these limits are exceeded. No silent browser-only publication occurs.
 
@@ -66,6 +76,22 @@ exactly-once provider billing cannot be guaranteed across network failures befor
 storage succeeds. Preview and corrected-sentence requests can trigger generation on cache misses. Repeat listening creates
 storage/network traffic, not ElevenLabs generation charges. Keep a restricted
 provider-key credit cap as an additional limit.
+
+Credit-saving behavior, in order of impact:
+
+1. **One recording per published passage, shared by every student.** Playback never
+   generates audio.
+2. **Content-addressed cache.** Identical text, voice, model and settings are generated
+   once for all teachers, so a copy customized to identical content costs nothing,
+   and a preview recorded before publishing is reused at publication.
+3. **Publication reuse.** Re-publishing an unchanged exercise reuses its recording,
+   even after a voice change. Such exercises keep their original narrator until
+   their content changes.
+4. **Corrected sentences are cached across users.** Each distinct corrected sentence
+   is paid for once.
+5. **Model.** `eleven_flash_v2_5` costs fewer credits per character than the default
+   `eleven_multilingual_v2`, at some cost in expressiveness. Changing
+   `ELEVENLABS_MODEL_ID` starts a separate cache, so existing recordings are not reused.
 
 ## Verification
 

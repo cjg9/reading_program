@@ -45,9 +45,10 @@ preserving their account and other classes. A teacher can invite them again.
 
 ## Design workflow: Figma
 
-Use the owner's [Dot Reading Figma file](https://www.figma.com/design/tfTA46pQ1s1YHtvB10qrkg/Dot-Reading?node-id=0-1)
-as the UI/UX design reference. See [design mapping and sync status](docs/design-workflow.md)
-for frame IDs, implementation decisions, and remaining Figma work.
+Use the owner's [Dot Reading Figma file](https://www.figma.com/design/tfTA46pQ1s1YHtvB10qrkg/Dot-Reading?node-id=40-2)
+as the UI/UX design reference. Its "Current app" page is captured from the running
+app with `npm.cmd run figma:snapshot`. See [design mapping and sync status](docs/design-workflow.md)
+for frame IDs, the sync steps, and remaining Figma work.
 
 For future UI changes, update the affected Figma designs and React screens in
 the same task, then compare the rendered application with the designs. Keep

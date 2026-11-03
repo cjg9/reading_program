@@ -15,7 +15,12 @@ beforeAll(async()=>{
     create schema storage;create table storage.buckets(id text primary key,name text,public boolean);
     insert into auth.users values('${user}'),('${other}');`);
   await db.exec(readFileSync(new URL('../supabase/migrations/20261018100000_narration_cache.sql',import.meta.url),'utf8'));
+  await db.exec(readFileSync(new URL('../supabase/migrations/20261103090000_starter_narration_limits.sql',import.meta.url),'utf8'));
 },30000);
+it('sizes the monthly budget to the ElevenLabs Starter allowance',async()=>{
+  const limits=await db.query<{monthly_characters:number;daily_user_characters:number}>('select monthly_characters,daily_user_characters from public.narration_limits');
+  expect(limits.rows).toEqual([{monthly_characters:28000,daily_user_characters:5000}]);
+});
 beforeEach(async()=>{await db.exec('begin');});
 afterEach(async()=>{await db.exec('rollback;reset role');});
 afterAll(async()=>{await db.close();});
