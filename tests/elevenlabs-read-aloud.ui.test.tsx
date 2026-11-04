@@ -103,18 +103,60 @@ it("seeks to a sentence and arbitrary time using the same complete recording",as
  fireEvent.change(screen.getByLabelText('Play a sentence'),{target:{value:'1'}});
  await act(async()=>{});
  expect(FakeAudio.instances[0].currentTime).toBe(0.7);
- act(()=>{FakeAudio.instances[0].currentTime=1.5;tick(0);});
+ act(()=>{FakeAudio.instances[0].currentTime=1.7;tick(0);});
  expect(screen.getByRole('button',{name:'Resume reading'})).toBeTruthy();
  fireEvent.change(screen.getByLabelText('Recording position'),{target:{value:'0.3'}});await act(async()=>{});
  expect(FakeAudio.instances[0].currentTime).toBe(0.3);
  expect(requestPublishedNarration).toHaveBeenCalledOnce();
  expect(requestPublishedNarration).toHaveBeenCalledWith('assignment',expect.any(AbortSignal));
 });
-it("requests corrected sentence audio and reuses it on replay",async()=>{
+it("plays a corrected sentence from its saved clip and reuses it on replay",async()=>{
+ const corrections=[{sentenceStart:0,answers:{2:"readers"}}];
  const {rerender}=render(<ElevenLabsReadAloud assignmentId="assignment" parts={parts}/>);
  fireEvent.click(screen.getByRole('button',{name:'Read aloud'}));await screen.findByRole('button',{name:'Pause reading'});
- rerender(<ElevenLabsReadAloud assignmentId="assignment" parts={parts} sentence={{parts:[{text:'different solved text',index:2}],requestId:1}}/>);
+ rerender(<ElevenLabsReadAloud assignmentId="assignment" parts={parts} corrections={corrections} sentence={{parts:[{text:'readers.',index:2}],requestId:1}}/>);
  await act(async()=>{});expect(FakeAudio.instances[1].currentTime).toBe(0.6);expect(requestPreviewNarration).toHaveBeenCalledOnce();
+ expect(vi.mocked(requestPreviewNarration).mock.calls[0][0]).toEqual({action:"corrected",assignmentId:"assignment",content:undefined,sentenceStart:0,answers:{2:"readers"}});
  fireEvent.click(screen.getByRole("button",{name:"Re-read sentence"}));await act(async()=>{});
  expect(requestPreviewNarration).toHaveBeenCalledOnce();
+ expect(requestPublishedNarration).toHaveBeenCalledOnce();
+});
+function clipFor(text:string,index:number):PublishedNarration {
+  const characters=Array.from(text);
+  return {parts:[{text,index}],audio_base64:btoa("clip"),alignment:{characters,character_start_times_seconds:characters.map((_,i)=>i/10),character_end_times_seconds:characters.map((_,i)=>(i+1)/10)}};
+}
+it("starts reading from a selected word in the saved recording",async()=>{
+  const onWord=vi.fn();
+  render(<ElevenLabsReadAloud assignmentId="assignment" parts={parts} onWord={onWord} listenFrom={{index:2,requestId:1}}/>);
+  await screen.findByRole("button",{name:"Pause reading"});
+  expect(FakeAudio.instances[0].currentTime).toBe(0.6);
+  act(()=>{tick(0);});expect(onWord).toHaveBeenLastCalledWith(2);
+  expect(requestPublishedNarration).toHaveBeenCalledOnce();
+});
+it("plays the full recording and saved corrected clip as one continuous passage",async()=>{
+  vi.mocked(requestPreviewNarration).mockResolvedValue(clipFor("readers.",2));
+  const onWord=vi.fn();
+  render(<ElevenLabsReadAloud assignmentId="assignment" parts={parts} onWord={onWord} corrections={[{sentenceStart:0,answers:{2:"readers"}}]}/>);
+  fireEvent.click(screen.getByRole("button",{name:"Read aloud"}));
+  await screen.findByRole("button",{name:"Pause reading"});
+  const [passage,corrected]=FakeAudio.instances as (FakeAudio&{volume:number})[];
+  act(()=>{passage.currentTime=0.54;tick(0);});
+  expect(passage.volume).toBeCloseTo(0.25,5); // fading out toward the join
+  await act(async()=>{passage.currentTime=0.55;tick(0);});
+  expect(passage.pause).toHaveBeenCalled();
+  expect(corrected.play).toHaveBeenCalled();expect(corrected.currentTime).toBe(0);
+  act(()=>{corrected.currentTime=0.3;tick(0);});expect(onWord).toHaveBeenLastCalledWith(2);
+  act(()=>{corrected.currentTime=1.0;tick(0);});
+  expect(onWord).toHaveBeenLastCalledWith(null);
+  expect(screen.getByRole("button",{name:"Read aloud"})).toBeTruthy();
+  fireEvent.click(screen.getByRole("button",{name:"Read aloud"}));await screen.findByRole("button",{name:"Pause reading"});
+  expect(requestPublishedNarration).toHaveBeenCalledOnce();expect(requestPreviewNarration).toHaveBeenCalledOnce();
+});
+it("falls back to the full recording when a corrected clip is unavailable",async()=>{
+  vi.mocked(requestPreviewNarration).mockRejectedValue(new Error("limit reached"));
+  render(<ElevenLabsReadAloud assignmentId="assignment" parts={parts} corrections={[{sentenceStart:0,answers:{2:"readers"}}]}/>);
+  fireEvent.click(screen.getByRole("button",{name:"Read aloud"}));
+  await screen.findByRole("button",{name:"Pause reading"});
+  expect(FakeAudio.instances).toHaveLength(1);
+  expect(screen.queryByRole("alert")).toBeNull();
 });

@@ -25,3 +25,15 @@ it("requests automatic sentence playback after saving a correct answer and sends
  expect(latest.sentence?.parts[0].index).toBe(0);
  expect(latest.content?.challenges).toHaveLength(2);
 });
+it("starts narration from a selected passage word and lists corrected sentences",async()=>{
+ const save=vi.fn(async()=>{});render(<ExercisePlayer content={content} assignmentId="assignment" onSave={save}/>);
+ fireEvent.click(screen.getByText("Dogs"));
+ expect(latest.listenFrom).toEqual({index:0,requestId:1});
+ fireEvent.click(screen.getByText("together."));
+ expect(latest.listenFrom).toEqual({index:6,requestId:2});
+ expect(latest.corrections).toEqual([]);
+ fireEvent.click(screen.getByRole("button",{name:"Challenge 1: missing word"}));
+ fireEvent.change(screen.getByLabelText(/Original word for challenge/i),{target:{value:"enjoy"}});
+ fireEvent.click(screen.getByRole("button",{name:/Check answer/i}));
+ await waitFor(()=>expect(latest.corrections).toEqual([{sentenceStart:0,answers:{2:"enjoy"}}]));
+});

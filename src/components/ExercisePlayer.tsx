@@ -20,6 +20,13 @@ export function ExercisePlayer({content,initialProgress,completed=false,preview=
   const tokens=useMemo(()=>splitPassage(content.passage),[content.passage]);
   const sentences=useMemo(()=>passageSentences(content.passage),[content.passage]);
   const [spoken,setSpoken]=useState<number|null>(null);
+  const [listenFrom,setListenFrom]=useState<{index:number;requestId:number}|undefined>();
+  // Sentences with correctly answered words play from their saved corrected clips.
+  const corrections=useMemo(()=>sentences.flatMap(sentence=>{
+    const solvedHere=challenges.filter(c=>c.index>=sentence.start&&c.index<=sentence.end&&correctAnswer(progress.answers[c.index]??"",c.word));
+    return solvedHere.length?[{sentenceStart:sentence.start,answers:Object.fromEntries(solvedHere.map(c=>[c.index,progress.answers[c.index]]))}]:[];
+  }),[sentences,challenges,progress.answers]);
+  const listen=(index:number)=>setListenFrom(current=>({index,requestId:(current?.requestId??0)+1}));
   const [busy,setBusy]=useState(false);
   const [finished,setFinished]=useState(completed);
   const [feedback,setFeedback]=useState("");
@@ -65,12 +72,14 @@ export function ExercisePlayer({content,initialProgress,completed=false,preview=
     <p>{strategies[content.strategy].instruction} {content.strategy==="endings"?"Listen for words that sound unfinished. Hover over or select a word to reveal the missing spaces, then type the complete word.":"Look for puzzle words as you read. Select one, type the original, and check your answer."}</p>
     <button type="button" className="text-button" aria-expanded={showCount} onClick={()=>setShowCount(value=>!value)}>How many puzzle words?</button>
     {showCount&&<p className="word-hint">There {challenges.length===1?"is":"are"} {challenges.length} puzzle {challenges.length===1?"word":"words"} in this practice.</p>}
-    <ReadAloud content={{...content,challenges}} answers={progress.answers} parts={spokenParts} assignmentId={assignmentId} onWord={setSpoken} sentence={reread}/>
+    <ReadAloud content={{...content,challenges}} answers={progress.answers} parts={spokenParts} assignmentId={assignmentId} onWord={setSpoken} sentence={reread} corrections={corrections} listenFrom={listenFrom}/>
     <progress aria-label="Words solved" value={solved} max={Math.max(challenges.length,1)} />
     <div className={`exercise-play-area ${finished?"is-finished":""}`}><div className="reading-passage">{(()=>{
       const renderToken=(token:string,index:number)=>{
       const challenge=byIndex.get(index);
-      if(!challenge)return <span key={index} className={spoken===index&&token.trim()?"reading-token is-spoken":"reading-token"}>{token}</span>;
+      if(!challenge)return token.trim()
+        ?<span key={index} className={`reading-token is-listenable${spoken===index?" is-spoken":""}`} title="Listen from here" onClick={()=>listen(index)}>{token}</span>
+        :<span key={index} className="reading-token">{token}</span>;
       const done=correctAnswer(progress.answers[index]??"",challenge.word);
       return <span key={index}>{token.match(/^[^\p{L}\p{N}]*/u)?.[0]}<button type="button" disabled={busy}
         className={`reading-word ${challenge.effect==="endings"&&!done?"missing-ending":""} ${done?"is-solved":""} ${selected===index?"is-selected":""} ${spoken===index?"is-spoken":""}`}

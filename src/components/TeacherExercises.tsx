@@ -10,7 +10,10 @@ function reveal(node:HTMLElement|null) {node?.focus({preventScroll:true});node?.
 function PlainPassage({content}:{content:ExerciseContent}) {
   const parts=useMemo(()=>splitPassage(content.passage).map((text,index)=>({text,index})),[content.passage]);
   const [spoken,setSpoken]=useState<number|null>(null);
-  return <><h3>{content.title}</h3><ReadAloud content={{...content,challenges:[]}} parts={parts} onWord={setSpoken}/><div className="reading-passage plain-passage">{parts.map(part=><span key={part.index} className={spoken===part.index&&part.text.trim()?"reading-token is-spoken":"reading-token"}>{part.text}</span>)}</div></>;
+  const [listenFrom,setListenFrom]=useState<{index:number;requestId:number}|undefined>();
+  return <><h3>{content.title}</h3><ReadAloud content={{...content,challenges:[]}} parts={parts} onWord={setSpoken} listenFrom={listenFrom}/><div className="reading-passage plain-passage">{parts.map(part=>part.text.trim()
+    ?<span key={part.index} className={`reading-token is-listenable${spoken===part.index?" is-spoken":""}`} title="Listen from here" onClick={()=>setListenFrom(current=>({index:part.index,requestId:(current?.requestId??0)+1}))}>{part.text}</span>
+    :<span key={part.index} className="reading-token">{part.text}</span>)}</div></>;
 }
 
 const blank=():ExerciseContent=>({title:"",passage:"",strategy:"missing",mode:"type",targetWords:[],vocabulary:{}});

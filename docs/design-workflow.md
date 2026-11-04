@@ -23,7 +23,7 @@ it one-to-one, including the five screens the concept never had.
 | 06 | Class students | `47:2` | `59:2` | `ClassPeople.tsx` |
 | 07 | Class statistics | `48:2` | `60:2` | `ClassInsights.tsx` |
 | 08 | My Practices | `49:2` | `61:2` | `TeacherExercises.tsx` |
-| 09 | Practice preview | `67:2` | `68:2` | `TeacherExercises.tsx`, `ElevenLabsReadAloud.tsx` |
+| 09 | Practice preview | `72:2` | `73:2` | `TeacherExercises.tsx`, `ElevenLabsReadAloud.tsx` |
 | 10 | Practice customize | `51:2` | `63:2` | `TeacherExercises.tsx` |
 | 11 | Student classes | `52:2` | `64:2` | `StudentDashboard.tsx` |
 | 12 | Student class | `53:2` | `65:2` | `StudentDashboard.tsx` |

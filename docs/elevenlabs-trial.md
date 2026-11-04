@@ -13,8 +13,29 @@ current assignment access through Supabase RLS and returns the pinned recording.
 Published full-passage playback cannot call ElevenLabs or repair missing stored objects.
 Older assignments without a publication use their authorized snapshot to populate
 the shared cache on first listening. Students cannot submit arbitrary narration text. All students share the same saved audio. They can
-pause/resume, change speed, choose a sentence, or seek to any point using the slider.
+pause/resume, change speed, choose a sentence, seek with the slider, or select any
+word in the passage to listen from there.
 Word tracking uses the recording's original character timings.
+
+### Word tracker and combined playback
+
+`src/lib/narrationTimeline.ts` maps every spoken passage word to one point on a
+single combined timeline:
+
+- **Base and clips.** The base is the saved full recording. For each sentence with
+  correctly answered words, its saved corrected clip replaces that stretch of the base.
+  `ExercisePlayer` sends those sentences as `corrections`, each with only that
+  sentence's correct answers.
+- **Joins.** Base cuts fall midway through the natural pause between sentences. Clips
+  keep a short lead-in and tail. Joins use a 40 ms volume fade, and the next recording
+  is positioned before the switch, so the passage plays continuously.
+- **Selecting a word.** It starts playback at that word's timeline position, through
+  the `listenFrom` prop. The sentence picker, slider, pause/resume and speed all use
+  the same timeline.
+- **No new audio.** Building or replaying the timeline never generates speech. Each
+  recording is fetched once per view, and the server returns its saved copy. If a clip
+  can't be loaded (for example, the monthly limit was reached before it was ever made),
+  that sentence plays from the base recording instead of failing.
 
 The full recording keeps puzzle words hidden. After a correct answer is saved,
 the sentence plays automatically with correctly answered words restored and other
