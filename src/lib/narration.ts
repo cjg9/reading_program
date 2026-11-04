@@ -11,21 +11,6 @@ export interface Narration {audio_base64:string;alignment:Alignment}
 export interface PublishedNarration extends Narration {parts:SpokenPart[]}
 export interface TimedWord {index:number;start:number;end:number}
 
-export function narrationSentences(parts:SpokenPart[]):SpokenPart[][] {
-  let offset=0;
-  const ranges=parts.map(part=>{const start=offset;offset+=part.text.length;return {part,start,end:offset};});
-  const text=parts.map(part=>part.text).join("");
-  return Array.from(new Intl.Segmenter("en",{granularity:"sentence"}).segment(text)).flatMap(segment=>{
-    if(!segment.segment.trim())return [];
-    const start=segment.index+segment.segment.search(/\S/);
-    const end=segment.index+segment.segment.trimEnd().length;
-    const sentence=ranges.filter(range=>range.end>start&&range.start<end).map(range=>({
-      index:range.part.index,text:range.part.text.slice(Math.max(0,start-range.start),Math.min(range.part.text.length,end-range.start)),
-    }));
-    return [sentence];
-  });
-}
-
 // Use original-text alignment, never normalized text offsets (e.g. "12" → "twelve").
 export function timedWords(parts:SpokenPart[],alignment:Alignment):TimedWord[] {
   const text=parts.map(part=>part.text).join("");

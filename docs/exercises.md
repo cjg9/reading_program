@@ -56,8 +56,8 @@ automatically reads the corrected sentence aloud, restoring correct answers whil
 leaving unsolved puzzle words hidden. **Re-read sentence** replays it. Read aloud
 uses saved ElevenLabs audio and tracks words from character timestamps. Reading
 speeds are Slower (0.6×), Normal (1×), and Faster (1.5×); speed changes apply to the
-audio player without regenerating a recording. Full-passage controls include a
-sentence selector and position slider. Browser speech synthesis is no longer used.
+audio player without regenerating a recording. Selecting any word in the passage
+starts reading from that word. Browser speech synthesis is no longer used.
 If autoplay is blocked, choose **Resume reading** to start playback.
 
 **Hint** saves hint usage and shows the first letter, length, and any available

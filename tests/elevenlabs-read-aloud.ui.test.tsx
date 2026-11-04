@@ -95,18 +95,17 @@ it("maps Unicode character offsets and refuses misaligned or invalid timestamps"
 });
 
 
-it("seeks to a sentence and arbitrary time using the same complete recording",async()=>{
+it("jumps between selected words in the same complete recording without sentence or position controls",async()=>{
  const sentenceParts=[{text:'Hello.',index:0},{text:' ',index:1},{text:'Welcome.',index:2}];
  vi.mocked(requestPublishedNarration).mockResolvedValue({...recording('Hello. Welcome.'),parts:sentenceParts});
- render(<ElevenLabsReadAloud assignmentId="assignment" parts={sentenceParts}/>);
+ const {rerender}=render(<ElevenLabsReadAloud assignmentId="assignment" parts={sentenceParts}/>);
  fireEvent.click(screen.getByRole('button',{name:'Read aloud'}));await screen.findByRole('button',{name:'Pause reading'});
- fireEvent.change(screen.getByLabelText('Play a sentence'),{target:{value:'1'}});
- await act(async()=>{});
- expect(FakeAudio.instances[0].currentTime).toBe(0.7);
- act(()=>{FakeAudio.instances[0].currentTime=1.7;tick(0);});
- expect(screen.getByRole('button',{name:'Resume reading'})).toBeTruthy();
- fireEvent.change(screen.getByLabelText('Recording position'),{target:{value:'0.3'}});await act(async()=>{});
- expect(FakeAudio.instances[0].currentTime).toBe(0.3);
+ expect(screen.queryByLabelText('Play a sentence')).toBeNull();
+ expect(screen.queryByLabelText('Recording position')).toBeNull();
+ rerender(<ElevenLabsReadAloud assignmentId="assignment" parts={sentenceParts} listenFrom={{index:2,requestId:1}}/>);
+ await act(async()=>{});expect(FakeAudio.instances[0].currentTime).toBe(0.7);
+ rerender(<ElevenLabsReadAloud assignmentId="assignment" parts={sentenceParts} listenFrom={{index:0,requestId:2}}/>);
+ await act(async()=>{});expect(FakeAudio.instances[0].currentTime).toBe(0);
  expect(requestPublishedNarration).toHaveBeenCalledOnce();
  expect(requestPublishedNarration).toHaveBeenCalledWith('assignment',expect.any(AbortSignal));
 });

@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState} from "react";
-import {requestPublishedNarration,requestPreviewNarration,timedWords,narrationSentences,type PublishedNarration} from "../lib/narration";
+import {requestPublishedNarration,requestPreviewNarration,timedWords,type PublishedNarration} from "../lib/narration";
 import {buildTimeline,locate,spliceVolume,wordStart,type Timeline,type TimelineSource} from "../lib/narrationTimeline";
 import type {ReadAloudProps,SentenceCorrection} from "./ReadAloud";
 
@@ -18,9 +18,6 @@ export function ElevenLabsReadAloud({assignmentId,content,answers,onWord,sentenc
   const [status,setStatus]=useState<"idle"|"loading"|"reading"|"paused">("idle");
   const [rate,setRate]=useState(1);
   const [error,setError]=useState("");
-  const [recording,setRecording]=useState<PublishedNarration|null>(null);
-  const [position,setPosition]=useState(0);
-  const [duration,setDuration]=useState(0);
   const sourceKey=JSON.stringify({assignmentId,content:assignmentId?undefined:content});
   const loaded=useRef(new Map<string,Loaded>());
   const pending=useRef(new Map<string,{task:Promise<Loaded|null>;signal:AbortSignal}>());
@@ -45,7 +42,7 @@ export function ElevenLabsReadAloud({assignmentId,content,answers,onWord,sentenc
     halt();request.current?.abort();request.current=null;
     for(const item of loaded.current.values())item.player.currentTime=0;
     current.current=null;stopAt.current=undefined;positionRef.current=0;
-    setPosition(0);onWordRef.current?.(null);setStatus("idle");
+    onWordRef.current?.(null);setStatus("idle");
   }
   function release(){
     for(const item of loaded.current.values()){
@@ -54,7 +51,7 @@ export function ElevenLabsReadAloud({assignmentId,content,answers,onWord,sentenc
     loaded.current.clear();pending.current.clear();timeline.current=null;
   }
   useEffect(()=>{
-    setRecording(null);setDuration(0);setError("");
+    setError("");
     const hide=()=>{if(document.hidden)stop();};
     document.addEventListener("visibilitychange",hide);
     return ()=>{document.removeEventListener("visibilitychange",hide);stop();release();};
@@ -95,7 +92,6 @@ export function ElevenLabsReadAloud({assignmentId,content,answers,onWord,sentenc
     const clips=await Promise.all(corrections.map((correction,i)=>fetchRecording(keys[i],s=>requestPreviewNarration(correctionBody(assignmentId,content,correction),s),signal,false)));
     const value=buildTimeline(base!.source,clips.flatMap(clip=>clip?[clip.source]:[]));
     timeline.current={key:timelineKey,value};
-    setRecording(base!.saved);setDuration(value.duration);
     return value;
   }
 
@@ -105,7 +101,7 @@ export function ElevenLabsReadAloud({assignmentId,content,answers,onWord,sentenc
     const segment=line.segments[now.segment];
     const local=now.player.currentTime;
     const global=segment.offset+Math.min(Math.max(local-segment.from,0),segment.to-segment.from);
-    positionRef.current=global;setPosition(global);
+    positionRef.current=global;
     if(stopAt.current!==undefined&&global>=stopAt.current){halt();setStatus("paused");onWordRef.current?.(null);return;}
     if(local>=segment.to-0.005){advance(id);return;}
     now.player.volume=spliceVolume(segment,local);
@@ -168,7 +164,6 @@ export function ElevenLabsReadAloud({assignmentId,content,answers,onWord,sentenc
     if(status==="reading"){halt();onWordRef.current?.(null);setStatus("paused");return;}
     if(status==="paused"){const resume=positionRef.current,limit=stopAt.current;await playFrom(()=>resume,limit===undefined||resume>=limit?undefined:()=>limit);}
   }
-  const sentences=recording?narrationSentences(recording.parts):[];
   return <div className="read-aloud" role="group" aria-label="Read aloud controls">
     <button type="button" className="secondary-button" disabled={status==="loading"} onClick={()=>void toggle()}>
       {status==="loading"?"Preparing audio…":status==="idle"?"Read aloud":status==="reading"?"Pause reading":"Resume reading"}
@@ -178,13 +173,6 @@ export function ElevenLabsReadAloud({assignmentId,content,answers,onWord,sentenc
     <label>Reading speed <select value={rate} onChange={event=>{const next=Number(event.target.value);rateRef.current=next;setRate(next);for(const item of loaded.current.values())item.player.playbackRate=next;}}>
       <option value={0.6}>Slower (0.6×)</option><option value={1}>Normal (1×)</option><option value={1.5}>Faster (1.5×)</option>
     </select></label>
-    {recording&&<>
-      <label>Play a sentence <select value="" onChange={event=>{const parts=sentences[Number(event.target.value)];if(parts)void playRange(parts[0].index,parts.at(-1)!.index);}}>
-        <option value="" disabled>Choose where to listen</option>
-        {sentences.map((parts,index)=><option key={index} value={index}>{index+1}. {parts.map(part=>part.text).join("").slice(0,65)}</option>)}
-      </select></label>
-      <label>Recording position <input type="range" min={0} max={duration} step={0.1} value={position} onChange={event=>{const time=Number(event.target.value);void playFrom(()=>time);}}/></label>
-    </>}
     {status==="loading"&&<span role="status">Preparing narration. Saved audio is reused whenever available.</span>}
     <p className="read-aloud-tip">Tip: select any word in the passage to listen from there.</p>
     {error&&<p role="alert" className="error-message">{error}</p>}

@@ -13,8 +13,9 @@ current assignment access through Supabase RLS and returns the pinned recording.
 Published full-passage playback cannot call ElevenLabs or repair missing stored objects.
 Older assignments without a publication use their authorized snapshot to populate
 the shared cache on first listening. Students cannot submit arbitrary narration text. All students share the same saved audio. They can
-pause/resume, change speed, choose a sentence, seek with the slider, or select any
-word in the passage to listen from there.
+pause/resume, change speed, or select any word in the passage to listen from there.
+The sentence picker and position slider were removed on November 3, 2026; selecting
+a word is the way to start partway through.
 Word tracking uses the recording's original character timings.
 
 ### Word tracker and combined playback
@@ -30,8 +31,8 @@ single combined timeline:
   keep a short lead-in and tail. Joins use a 40 ms volume fade, and the next recording
   is positioned before the switch, so the passage plays continuously.
 - **Selecting a word.** It starts playback at that word's timeline position, through
-  the `listenFrom` prop. The sentence picker, slider, pause/resume and speed all use
-  the same timeline.
+  the `listenFrom` prop. Pause/resume, speed and Re-read sentence use the same
+  timeline.
 - **No new audio.** Building or replaying the timeline never generates speech. Each
   recording is fetched once per view, and the server returns its saved copy. If a clip
   can't be loaded (for example, the monthly limit was reached before it was ever made),
