@@ -109,7 +109,8 @@ progress::-moz-progress-bar { background:var(--accent); border-radius:8px; }
 .overview-grid button:hover { border-color:var(--accent); }
 .overview-grid strong { font-size:16px; }
 .overview-grid span { font-size:13px; line-height:1.7; color:var(--muted); }
-.section-title { display:flex; justify-content:space-between; align-items:center; gap:20px; }
+.section-title { display:flex; justify-content:space-between; align-items:flex-start; gap:20px; }
+.section-title > .text-button { margin-top:19px; } /* centers on the h2 (30px tall, ~20px top margin) */
 .insights-panel { border:1px solid var(--line); border-radius:14px; padding:24px; background:white; }
 .insight-row { margin-top:24px; }
 .insight-row > div { display:flex; justify-content:space-between; gap:14px; margin-bottom:10px; font-size:13px; }

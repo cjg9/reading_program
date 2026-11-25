@@ -97,10 +97,10 @@ export function InviteTable({ send, onComplete, onBusyChange, disabled }: Props)
             }}
             onChange={event => update(row.id,field,event.target.value)} />
         </td>)}
-        <td className="invite-row-status"><span>{row.status === "sent" ? "Sent" : row.status === "sending" ? "Sending..." : row.error ? "Needs attention" : "Ready"}</span>
+        <td className="invite-row-status"><span>{row.status === "sent" ? "Sent" : row.status === "sending" ? "Sending..." : row.error ? "Needs attention" : row.firstName.trim() || row.lastName.trim() || row.email.trim() ? "Ready" : ""}</span>
           {row.error && <p id={`invite-row-${row.id}-error`} className="error-message">{row.error}</p>}</td>
-        <td><button className="text-button" type="button" aria-label={`Remove student ${index + 1}`} disabled={busy || disabled || rows.length === 1}
-          onClick={() => { setRows(current => current.filter(item => item.id !== row.id)); setNotice(""); }}>Remove</button></td>
+        <td>{rows.length > 1 && <button className="text-button" type="button" aria-label={`Remove student ${index + 1}`} disabled={busy || disabled}
+          onClick={() => { setRows(current => current.filter(item => item.id !== row.id)); setNotice(""); }}>Remove</button>}</td>
       </tr>)}</tbody>
     </table></div>
     <div className="invite-batch-actions">

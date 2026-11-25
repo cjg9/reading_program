@@ -3,6 +3,7 @@ import {cleanup, fireEvent, render, screen, within} from "@testing-library/react
 import {afterEach, expect, it, vi} from "vitest";
 import type {SupabaseClient, User} from "@supabase/supabase-js";
 import {TeacherDashboard} from "../src/components/TeacherDashboard";
+import {exercisePresets} from "../src/lib/exercise-presets";
 
 vi.mock("../src/lib/reading-overview",()=>({
   useReadingOverview:()=>({loading:false,error:"",summary:{students:0,completed:0},members:[],assignments:[],progress:[],refresh:vi.fn()}),
@@ -11,11 +12,13 @@ vi.mock("../src/lib/reading-overview",()=>({
 afterEach(cleanup);
 
 it("places My Practices below My Classrooms and opens the same library from a class",async()=>{
+  // The distribution checkboxes appear once the teacher has a saved practice.
+  const savedPractice={id:"saved",teacher_id:"teacher",preset_key:null,content:exercisePresets[0].content};
   const classroom={id:42,teacher_id:"teacher",name:"English 6",created_at:"2026-10-01",last_accessed_at:"2026-10-01"};
   const client={
     rpc:vi.fn().mockResolvedValue({data:[],error:null}),
     from:(table:string)=>{
-      const result={data:table==="classes"?[classroom]:[],error:null};
+      const result={data:table==="classes"?[classroom]:table==="reading_exercises"?[savedPractice]:[],error:null};
       const q={select:()=>q,eq:()=>q,order:()=>q,update:()=>q,in:()=>q,is:()=>q,
         single:()=>Promise.resolve({data:classroom,error:null}),
         then:(resolve:(value:unknown)=>unknown)=>Promise.resolve(result).then(resolve)};
