@@ -123,6 +123,8 @@ it("loads student progress and sends saved work only for the selected assignment
   const client={rpc,functions:{invoke:vi.fn().mockResolvedValue({data:{publicationId:"recording"},error:null})},from:(name:string)=>query(name==="exercise_assignments"?[{id:"assignment",class_id:42,content,archived_at:null}]:[record])} as unknown as SupabaseClient;
   render(<StudentExercises client={client} classId={42} studentId="student"/>);
   fireEvent.click(await screen.findByRole("button",{name:"Continue practice"}));
+  expect(document.activeElement).toBe(screen.getByRole("heading",{level:2,name:content.title}));
+  expect(screen.queryByRole("button",{name:"Refresh practices"})).toBeNull();
   fireEvent.click(screen.getByRole("button",{name:/Challenge 1:/}));
   expect(screen.getByLabelText(/Original word/)).toHaveProperty("value","wrong");
   fireEvent.change(screen.getByLabelText(/Original word/),{target:{value:"chaos"}});
@@ -135,6 +137,7 @@ it("allows creating practices before a teacher has classrooms",async()=>{
   const client={rpc,functions:{invoke:vi.fn().mockResolvedValue({data:{publicationId:"recording"},error:null})},from:()=>query([])} as unknown as SupabaseClient;
   render(<TeacherExercises client={client} classes={[]}/>);
   await screen.findByText(/You can create and save practices now/);
+  expect(screen.queryByRole("group",{name:"Distribute to classrooms"})).toBeNull();
   fireEvent.click(screen.getByRole("button",{name:"Create practice"}));
   fireEvent.change(screen.getByLabelText("Title",{exact:true}),{target:{value:"Independent practice"}});
   fireEvent.change(screen.getByLabelText("Reading passage"),{target:{value:content.passage}});
@@ -184,4 +187,11 @@ it("does not assign until complete narration is saved and retains the practice o
  expect(rpc.mock.calls.some(([name])=>name==='assign_reading_exercise')).toBe(false);
  expect(invoke).toHaveBeenCalledWith('read-aloud',expect.objectContaining({body:{action:'prepare',exerciseId:'saved'}}));
  expect(screen.getByRole('button',{name:'Assign to selected classes'})).toBeTruthy();
+});
+it("returns focus to the practice's button when a student goes back to all practices",async()=>{
+  const client={rpc:vi.fn(),functions:{invoke:vi.fn()},from:(name:string)=>query(name==="exercise_assignments"?[{id:"assignment",class_id:42,content,archived_at:null}]:[])} as unknown as SupabaseClient;
+  render(<StudentExercises client={client} classId={42} studentId="student"/>);
+  fireEvent.click(await screen.findByRole("button",{name:"Start practice"}));
+  fireEvent.click(screen.getByRole("button",{name:/All practices/}));
+  expect(document.activeElement).toBe(screen.getByRole("button",{name:"Start practice"}));
 });

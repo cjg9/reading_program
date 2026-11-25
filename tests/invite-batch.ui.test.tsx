@@ -80,3 +80,12 @@ it("removes rows and caps batches at thirty students", () => {
   expect(screen.getByText("Add student")).toHaveProperty("disabled",false);
   expect(screen.queryByLabelText("First name 30")).toBeNull();
 });
+it("does not offer Remove or a Ready status on a single blank row", () => {
+  render(<InviteTable send={vi.fn()} onComplete={vi.fn()} onBusyChange={vi.fn()} disabled={false} />);
+  expect(screen.queryByLabelText("Remove student 1")).toBeNull();
+  expect(screen.queryByText("Ready")).toBeNull();
+  fill(1,"alex@example.test");
+  expect(screen.getByText("Ready")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button",{name:"Add student"}));
+  expect(screen.getByLabelText("Remove student 1")).toBeTruthy();
+});

@@ -59,10 +59,11 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 .class-menu-heading h1,.class-workspace h1 { font-size:32px; line-height:1.3; margin:0; font-weight:800; }
 .class-menu-heading > div > p:last-child,.class-workspace > p { font-size:14px; margin-top:8px; color:var(--muted); }
 .class-workspace > time { font-size:12px; color:#64748b; }
+.class-workspace > time + .exercises-section { margin-top:28px; }
 .class-workspace .back-button { margin-bottom:20px; padding-left:0; }
 .class-workspace > p:not(.eyebrow,.error-message) { font-size:14px; margin:10px 0 12px; }
 .text-button.danger-button { color:var(--danger); }
-.class-menu-heading h1:focus,.class-workspace h1:focus { outline-color:var(--accent); }
+.class-menu-heading h1:focus-visible,.class-workspace h1:focus-visible { outline-color:var(--accent); }
 .class-menu-heading .create-class-button { width:auto; display:inline-flex; gap:8px; align-items:center; flex-shrink:0; }
 .create-class-button img { width:16px; height:16px; }
 .metric-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:20px; margin:28px 0; }
@@ -108,7 +109,8 @@ progress::-moz-progress-bar { background:var(--accent); border-radius:8px; }
 .overview-grid button:hover { border-color:var(--accent); }
 .overview-grid strong { font-size:16px; }
 .overview-grid span { font-size:13px; line-height:1.7; color:var(--muted); }
-.section-title { display:flex; justify-content:space-between; align-items:center; gap:20px; }
+.section-title { display:flex; justify-content:space-between; align-items:flex-start; gap:20px; }
+.section-title > .text-button { margin-top:19px; } /* centers on the h2 (30px tall, ~20px top margin) */
 .insights-panel { border:1px solid var(--line); border-radius:14px; padding:24px; background:white; }
 .insight-row { margin-top:24px; }
 .insight-row > div { display:flex; justify-content:space-between; gap:14px; margin-bottom:10px; font-size:13px; }

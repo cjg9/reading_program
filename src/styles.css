@@ -548,8 +548,8 @@ blockquote cite {
   line-height: 1;
 }
 
-.class-menu-heading h1:focus,
-.class-workspace h1:focus {
+.class-menu-heading h1:focus-visible,
+.class-workspace h1:focus-visible {
   outline: 3px solid #7d3927;
   outline-offset: 6px;
 }

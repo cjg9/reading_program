@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { completedChallenges, exerciseChallenges, strategies, type Assignment, type ExerciseProgress, type ProgressRecord } from "../lib/exercises";
 import { ExercisePlayer } from "./ExercisePlayer";
@@ -10,6 +10,14 @@ export function StudentExercises({client,classId,studentId}:{client:SupabaseClie
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState("");
   const [saving,setSaving]=useState(false);
+  const playerArea=useRef<HTMLDivElement>(null);
+  const listArea=useRef<HTMLDivElement>(null);
+  const lastOpened=useRef<string|null>(null);
+  // Keep keyboard and screen-reader users in place: the button they pressed is removed when a practice opens or closes.
+  useEffect(()=>{
+    if(selected){lastOpened.current=selected;playerArea.current?.querySelector<HTMLElement>("h2")?.focus();return;}
+    if(lastOpened.current){listArea.current?.querySelector<HTMLElement>(`[data-assignment="${lastOpened.current}"]`)?.focus();lastOpened.current=null;}
+  },[selected,loading]);
   const load=useCallback(async()=>{
     setLoading(true);setError("");
     try {
@@ -34,15 +42,15 @@ export function StudentExercises({client,classId,studentId}:{client:SupabaseClie
   const record=records.find(x=>x.assignment_id===selected);
   return <section className="exercises-section" aria-labelledby="student-exercises-heading">
     <header className="exercise-section-heading"><div><p className="eyebrow">Your next discovery</p><h2 id="student-exercises-heading">Reading quests</h2></div>
-      <button className="text-button" disabled={loading||saving} onClick={()=>{setSelected(null);void load();}}>Refresh practices</button></header>
-    {error?<p className="error-message" role="alert">{error}</p>:loading?<p role="status">Loading your practices...</p>:assignment?<>
+      {!assignment&&<button className="text-button" disabled={loading||saving} onClick={()=>void load()}>Refresh practices</button>}</header>
+    {error?<p className="error-message" role="alert">{error}</p>:loading?<p role="status">Loading your practices...</p>:assignment?<div ref={playerArea}>
       <button className="back-button" disabled={saving} onClick={()=>setSelected(null)}>← All practices</button>
       <ExercisePlayer key={assignment.id} content={assignment.content} assignmentId={assignment.id} initialProgress={record?.progress} completed={Boolean(record?.completed_at)} onSave={(p,f)=>save(assignment,p,f)}/>
-    </>:assignments.length===0?<p>Your teacher hasn’t assigned a practice yet. Check back soon.</p>:<div className="exercise-grid">{assignments.map(a=>{
+    </div>:assignments.length===0?<p>Your teacher hasn’t assigned a practice yet. Check back soon.</p>:<div className="exercise-grid" ref={listArea}>{assignments.map(a=>{
       const p=records.find(x=>x.assignment_id===a.id);return <article className="exercise-card" key={a.id}>
         <p className="eyebrow">{p?.completed_at?"Quest complete":p?"Keep going":"New quest"}</p><h3>{a.content.title}</h3><p>{strategies[a.content.strategy].name}</p>
         <p>{p?completedChallenges(a.content,p.progress):0} / {exerciseChallenges(a.content).length} words solved</p>
-        <button className="primary-button" onClick={()=>setSelected(a.id)}>{p?.completed_at?"Review practice":p?"Continue practice":"Start practice"}</button></article>;
+        <button className="primary-button" data-assignment={a.id} onClick={()=>setSelected(a.id)}>{p?.completed_at?"Review practice":p?"Continue practice":"Start practice"}</button></article>;
     })}</div>}
   </section>;
 }

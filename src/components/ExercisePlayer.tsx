@@ -67,7 +67,7 @@ export function ExercisePlayer({content,initialProgress,completed=false,preview=
     await persist({...progress,hints:[...new Set([...progress.hints,active.index])]});
   }
   return <section className="exercise-player" aria-label="Reading activity">
-    <div className="exercise-player-heading"><div><p className="eyebrow">{preview?"Teacher preview":"Word quest"}</p><h2>{content.title}</h2></div>
+    <div className="exercise-player-heading"><div><p className="eyebrow">{preview?"Teacher preview":"Word quest"}</p><h2 tabIndex={-1}>{content.title}</h2></div>
       <span className="exercise-count">{solved} / {challenges.length} solved</span></div>
     <p>{strategies[content.strategy].instruction} {content.strategy==="endings"?"Listen for words that sound unfinished. Hover over or select a word to reveal the missing spaces, then type the complete word.":"Look for puzzle words as you read. Select one, type the original, and check your answer."}</p>
     <button type="button" className="text-button" aria-expanded={showCount} onClick={()=>setShowCount(value=>!value)}>How many puzzle words?</button>
